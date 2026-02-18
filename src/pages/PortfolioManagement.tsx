@@ -14,20 +14,20 @@ import {
 import { Plus, Settings, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 
 const portfolioData = [
-  { name: '贵州茅台', code: '600519', shares: 100, cost: 1750, current: 1856, weight: 25 },
-  { name: '宁德时代', code: '300750', shares: 200, cost: 220, current: 234.56, weight: 18 },
-  { name: '比亚迪', code: '002594', shares: 150, cost: 250, current: 267.89, weight: 15 },
-  { name: '中国平安', code: '601318', shares: 500, cost: 48, current: 45.67, weight: 12 },
-  { name: '招商银行', code: '600036', shares: 400, cost: 32, current: 34.12, weight: 10 },
-  { name: '隆基绿能', code: '601012', shares: 800, cost: 35, current: 32.45, weight: 10 },
-  { name: '现金', code: '-', shares: 0, cost: 0, current: 50000, weight: 10 },
+  { name: '寒武纪', code: '688256', shares: 200, cost: 380, current: 456.78, weight: 28 },
+  { name: '宁德时代', code: '300750', shares: 300, cost: 175, current: 198.45, weight: 18 },
+  { name: '比亚迪', code: '002594', shares: 100, cost: 285, current: 312.80, weight: 12 },
+  { name: '科大讯飞', code: '002230', shares: 400, cost: 65, current: 78.56, weight: 10 },
+  { name: '拓普集团', code: '601689', shares: 350, cost: 75, current: 89.45, weight: 10 },
+  { name: '海光信息', code: '688041', shares: 150, cost: 98, current: 123.45, weight: 12 },
+  { name: '现金', code: '-', shares: 0, cost: 0, current: 80000, weight: 10 },
 ]
 
 const allocationData = [
-  { name: '白酒', value: 25, color: '#3b82f6' },
-  { name: '新能源', value: 33, color: '#10b981' },
-  { name: '金融', value: 22, color: '#f59e0b' },
-  { name: '光伏', value: 10, color: '#8b5cf6' },
+  { name: 'AI芯片', value: 40, color: '#3b82f6' },
+  { name: '新能源', value: 30, color: '#10b981' },
+  { name: '人形机器人', value: 10, color: '#f59e0b' },
+  { name: 'AI应用', value: 10, color: '#8b5cf6' },
   { name: '现金', value: 10, color: '#9ca3af' },
 ]
 
@@ -38,10 +38,10 @@ const performanceData = Array.from({ length: 30 }, (_, i) => ({
 }))
 
 const summaryData = [
-  { label: '总资产', value: '¥1,234,567', change: 8.45 },
-  { label: '今日盈亏', value: '¥12,345', change: 1.23 },
-  { label: '持仓盈亏', value: '¥89,234', change: 7.82 },
-  { label: '可用现金', value: '¥50,000', change: 0 },
+  { label: '总资产', value: '¥2,567,890', change: 15.67 },
+  { label: '今日盈亏', value: '¥45,678', change: 3.45 },
+  { label: '持仓盈亏', value: '¥356,789', change: 18.92 },
+  { label: '可用现金', value: '¥80,000', change: 0 },
 ]
 
 export default function PortfolioManagement() {

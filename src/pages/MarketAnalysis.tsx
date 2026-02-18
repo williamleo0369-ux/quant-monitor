@@ -33,18 +33,18 @@ const generateKLineData = () => {
 }
 
 const indexData = [
-  { name: '上证指数', code: '000001.SH', price: 3245.67, change: 1.23, changePercent: 0.38 },
-  { name: '深证成指', code: '399001.SZ', price: 10892.34, change: -45.21, changePercent: -0.41 },
-  { name: '创业板指', code: '399006.SZ', price: 2156.78, change: 23.45, changePercent: 1.10 },
-  { name: '科创50', code: '000688.SH', price: 987.65, change: 12.34, changePercent: 1.26 },
+  { name: '上证指数', code: '000001.SH', price: 3567.89, change: 28.45, changePercent: 0.80 },
+  { name: '深证成指', code: '399001.SZ', price: 11856.72, change: 156.34, changePercent: 1.34 },
+  { name: '创业板指', code: '399006.SZ', price: 2489.56, change: 45.67, changePercent: 1.87 },
+  { name: '科创50', code: '000688.SH', price: 1123.45, change: -8.92, changePercent: -0.79 },
 ]
 
 const hotStocks = [
-  { name: '贵州茅台', code: '600519', price: 1856.00, change: 2.35 },
-  { name: '宁德时代', code: '300750', price: 234.56, change: -1.23 },
-  { name: '比亚迪', code: '002594', price: 267.89, change: 3.45 },
-  { name: '中国平安', code: '601318', price: 45.67, change: -0.56 },
-  { name: '招商银行', code: '600036', price: 34.12, change: 0.89 },
+  { name: '贵州茅台', code: '600519', price: 1723.50, change: 1.85 },
+  { name: '宁德时代', code: '300750', price: 198.45, change: 4.56 },
+  { name: '比亚迪', code: '002594', price: 312.80, change: 2.89 },
+  { name: '中芯国际', code: '688981', price: 89.56, change: 5.67 },
+  { name: '华为海思概念', code: '002049', price: 45.23, change: 8.45 },
 ]
 
 export default function MarketAnalysis() {

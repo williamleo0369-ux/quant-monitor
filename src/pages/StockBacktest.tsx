@@ -32,19 +32,19 @@ const generateBacktestData = () => {
 }
 
 const metricsData = [
-  { label: '年化收益率', value: '23.45%', color: 'text-green-600' },
-  { label: '夏普比率', value: '1.85', color: 'text-blue-600' },
-  { label: '最大回撤', value: '-12.34%', color: 'text-red-600' },
-  { label: '胜率', value: '58.67%', color: 'text-purple-600' },
-  { label: '盈亏比', value: '1.42', color: 'text-orange-600' },
-  { label: '交易次数', value: '156', color: 'text-gray-600' },
+  { label: '年化收益率', value: '35.28%', color: 'text-green-600' },
+  { label: '夏普比率', value: '2.15', color: 'text-blue-600' },
+  { label: '最大回撤', value: '-8.76%', color: 'text-red-600' },
+  { label: '胜率', value: '62.34%', color: 'text-purple-600' },
+  { label: '盈亏比', value: '1.68', color: 'text-orange-600' },
+  { label: '交易次数', value: '89', color: 'text-gray-600' },
 ]
 
 export default function StockBacktest() {
   const [backtestData] = useState(generateBacktestData())
   const [stockCode, setStockCode] = useState('600519')
-  const [startDate, setStartDate] = useState('2023-01-01')
-  const [endDate, setEndDate] = useState('2023-12-31')
+  const [startDate, setStartDate] = useState('2025-01-01')
+  const [endDate, setEndDate] = useState('2026-02-18')
   const [isRunning, setIsRunning] = useState(false)
 
   const handleRunBacktest = () => {
@@ -207,11 +207,12 @@ export default function StockBacktest() {
             </thead>
             <tbody>
               {[
-                { date: '2023-01-05', action: '买入', price: 1756.00, quantity: 100, amount: 175600, profit: null },
-                { date: '2023-02-15', action: '卖出', price: 1823.50, quantity: 100, amount: 182350, profit: 6750 },
-                { date: '2023-03-20', action: '买入', price: 1789.00, quantity: 100, amount: 178900, profit: null },
-                { date: '2023-05-10', action: '卖出', price: 1856.00, quantity: 100, amount: 185600, profit: 6700 },
-                { date: '2023-07-08', action: '买入', price: 1812.00, quantity: 100, amount: 181200, profit: null },
+                { date: '2025-01-08', action: '买入', price: 1645.00, quantity: 100, amount: 164500, profit: null },
+                { date: '2025-03-12', action: '卖出', price: 1756.80, quantity: 100, amount: 175680, profit: 11180 },
+                { date: '2025-05-20', action: '买入', price: 1698.50, quantity: 100, amount: 169850, profit: null },
+                { date: '2025-08-15', action: '卖出', price: 1823.00, quantity: 100, amount: 182300, profit: 12450 },
+                { date: '2025-11-06', action: '买入', price: 1712.00, quantity: 100, amount: 171200, profit: null },
+                { date: '2026-01-18', action: '卖出', price: 1789.50, quantity: 100, amount: 178950, profit: 7750 },
               ].map((record, index) => (
                 <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4">{record.date}</td>

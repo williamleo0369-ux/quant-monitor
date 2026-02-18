@@ -11,35 +11,35 @@ import {
 import { TrendingUp, Search, Flame, Clock, Star } from 'lucide-react'
 
 const hotTopics = [
-  { id: 1, name: 'AI人工智能', heat: 98, change: 15, stocks: 45, trend: 'up' },
-  { id: 2, name: '机器人', heat: 92, change: 23, stocks: 32, trend: 'up' },
-  { id: 3, name: '华为概念', heat: 87, change: -5, stocks: 89, trend: 'down' },
-  { id: 4, name: '新能源汽车', heat: 85, change: 8, stocks: 67, trend: 'up' },
-  { id: 5, name: '光伏', heat: 78, change: -12, stocks: 54, trend: 'down' },
-  { id: 6, name: '半导体', heat: 76, change: 18, stocks: 43, trend: 'up' },
+  { id: 1, name: 'DeepSeek概念', heat: 99, change: 45, stocks: 56, trend: 'up' },
+  { id: 2, name: '人形机器人', heat: 96, change: 32, stocks: 48, trend: 'up' },
+  { id: 3, name: 'AI Agent', heat: 94, change: 28, stocks: 67, trend: 'up' },
+  { id: 4, name: '低空经济', heat: 89, change: 18, stocks: 35, trend: 'up' },
+  { id: 5, name: '固态电池', heat: 85, change: 12, stocks: 42, trend: 'up' },
+  { id: 6, name: '量子计算', heat: 82, change: 8, stocks: 28, trend: 'up' },
 ]
 
 const relatedStocks = [
-  { name: '科大讯飞', code: '002230', price: 56.78, change: 8.45, concept: 'AI人工智能' },
-  { name: '寒武纪', code: '688256', price: 123.45, change: 7.23, concept: 'AI人工智能' },
-  { name: '海康威视', code: '002415', price: 34.56, change: 5.67, concept: 'AI人工智能' },
-  { name: '埃斯顿', code: '002747', price: 18.90, change: 6.78, concept: '机器人' },
-  { name: '机器人', code: '300024', price: 12.34, change: 9.12, concept: '机器人' },
+  { name: '寒武纪', code: '688256', price: 456.78, change: 15.67, concept: 'DeepSeek概念' },
+  { name: '科大讯飞', code: '002230', price: 78.56, change: 12.34, concept: 'AI Agent' },
+  { name: '拓普集团', code: '601689', price: 89.45, change: 10.23, concept: '人形机器人' },
+  { name: '三花智控', code: '002050', price: 34.56, change: 9.87, concept: '人形机器人' },
+  { name: '赣锋锂业', code: '002460', price: 56.78, change: 8.45, concept: '固态电池' },
 ]
 
 const trendData = Array.from({ length: 30 }, (_, i) => ({
   day: i + 1,
-  AI人工智能: Math.round((50 + Math.random() * 50) * 10) / 10,
-  机器人: Math.round((40 + Math.random() * 45) * 10) / 10,
-  华为概念: Math.round((60 + Math.random() * 35) * 10) / 10,
+  DeepSeek概念: Math.round((60 + Math.random() * 40) * 10) / 10,
+  人形机器人: Math.round((55 + Math.random() * 45) * 10) / 10,
+  AI_Agent: Math.round((50 + Math.random() * 48) * 10) / 10,
 }))
 
 const newsItems = [
-  { time: '10:30', title: 'OpenAI发布最新GPT模型，引发市场关注', source: '财联社' },
-  { time: '09:45', title: '工信部：加快推进人工智能产业发展', source: '证券时报' },
-  { time: '09:15', title: '特斯拉人形机器人量产进度超预期', source: '界面新闻' },
-  { time: '08:30', title: '华为发布新一代麒麟芯片，算力大幅提升', source: '21世纪经济报道' },
-  { time: '昨日', title: '国家出台AI产业支持政策，龙头企业受益', source: '经济日报' },
+  { time: '11:20', title: 'DeepSeek发布新一代推理模型R2，性能超越GPT-5', source: '财联社' },
+  { time: '10:45', title: '特斯拉Optimus机器人开始量产，年产能达100万台', source: '证券时报' },
+  { time: '09:30', title: '国务院发布低空经济发展规划，万亿市场开启', source: '经济日报' },
+  { time: '09:00', title: '宁德时代固态电池实现量产，能量密度突破500Wh/kg', source: '21世纪经济报道' },
+  { time: '昨日', title: '中国量子计算机实现1000+量子比特，领先全球', source: '科技日报' },
 ]
 
 export default function HotspotTracking() {
@@ -124,24 +124,24 @@ export default function HotspotTracking() {
                     borderRadius: '8px',
                   }}
                 />
-                <Line type="monotone" dataKey="AI人工智能" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="机器人" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="华为概念" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="DeepSeek概念" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="人形机器人" stroke="#10b981" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="AI_Agent" stroke="#f59e0b" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-sm text-gray-600">AI人工智能</span>
+              <span className="text-sm text-gray-600">DeepSeek概念</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-sm text-gray-600">机器人</span>
+              <span className="text-sm text-gray-600">人形机器人</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-              <span className="text-sm text-gray-600">华为概念</span>
+              <span className="text-sm text-gray-600">AI Agent</span>
             </div>
           </div>
         </div>

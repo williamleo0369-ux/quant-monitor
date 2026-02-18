@@ -12,35 +12,35 @@ import {
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
 const sectorData = [
-  { name: '新能源', change: 3.25, volume: 1256, stocks: 45, color: '#ef4444' },
-  { name: '半导体', change: 2.18, volume: 987, stocks: 38, color: '#f97316' },
-  { name: '医药生物', change: 1.56, volume: 1123, stocks: 125, color: '#eab308' },
-  { name: '银行', change: -0.45, volume: 567, stocks: 42, color: '#22c55e' },
-  { name: '房地产', change: -1.23, volume: 345, stocks: 89, color: '#14b8a6' },
-  { name: '消费电子', change: 1.89, volume: 756, stocks: 56, color: '#3b82f6' },
-  { name: '白酒', change: 0.78, volume: 423, stocks: 18, color: '#8b5cf6' },
-  { name: '汽车', change: 2.45, volume: 892, stocks: 67, color: '#ec4899' },
+  { name: 'AI大模型', change: 5.67, volume: 2345, stocks: 68, color: '#ef4444' },
+  { name: '人形机器人', change: 4.23, volume: 1876, stocks: 42, color: '#f97316' },
+  { name: '芯片半导体', change: 3.45, volume: 1567, stocks: 55, color: '#eab308' },
+  { name: '固态电池', change: 2.89, volume: 1234, stocks: 35, color: '#22c55e' },
+  { name: '低空经济', change: 2.34, volume: 987, stocks: 28, color: '#14b8a6' },
+  { name: '量子计算', change: 1.78, volume: 756, stocks: 23, color: '#3b82f6' },
+  { name: '新能源车', change: -0.45, volume: 1456, stocks: 89, color: '#8b5cf6' },
+  { name: '医药生物', change: -1.12, volume: 1123, stocks: 156, color: '#ec4899' },
 ]
 
 const treemapData = [
-  { name: '新能源', size: 1256, change: 3.25 },
-  { name: '半导体', size: 987, change: 2.18 },
-  { name: '医药生物', size: 1123, change: 1.56 },
-  { name: '银行', size: 567, change: -0.45 },
-  { name: '房地产', size: 345, change: -1.23 },
-  { name: '消费电子', size: 756, change: 1.89 },
-  { name: '白酒', size: 423, change: 0.78 },
-  { name: '汽车', size: 892, change: 2.45 },
-  { name: '电力', size: 634, change: 0.34 },
-  { name: '钢铁', size: 289, change: -0.67 },
+  { name: 'AI大模型', size: 2345, change: 5.67 },
+  { name: '人形机器人', size: 1876, change: 4.23 },
+  { name: '芯片半导体', size: 1567, change: 3.45 },
+  { name: '固态电池', size: 1234, change: 2.89 },
+  { name: '低空经济', size: 987, change: 2.34 },
+  { name: '量子计算', size: 756, change: 1.78 },
+  { name: '新能源车', size: 1456, change: -0.45 },
+  { name: '医药生物', size: 1123, change: -1.12 },
+  { name: '光伏储能', size: 845, change: 0.89 },
+  { name: '消费电子', size: 678, change: -0.34 },
 ]
 
 const topStocksInSector = [
-  { name: '宁德时代', code: '300750', price: 234.56, change: 4.56 },
-  { name: '比亚迪', code: '002594', price: 267.89, change: 3.89 },
-  { name: '隆基绿能', code: '601012', price: 32.45, change: 2.78 },
-  { name: '阳光电源', code: '300274', price: 89.12, change: 2.34 },
-  { name: '通威股份', code: '600438', price: 45.67, change: 1.89 },
+  { name: '寒武纪', code: '688256', price: 456.78, change: 12.34 },
+  { name: '科大讯飞', code: '002230', price: 78.56, change: 8.67 },
+  { name: '商汤科技', code: '688111', price: 23.45, change: 7.89 },
+  { name: '云从科技', code: '688327', price: 34.56, change: 6.78 },
+  { name: '海光信息', code: '688041', price: 123.45, change: 5.67 },
 ]
 
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899']
@@ -172,7 +172,7 @@ export default function SectorAnalysis() {
 
         {/* Top Stocks in Sector */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">新能源板块龙头股</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">AI大模型板块龙头股</h2>
           <div className="space-y-3">
             {topStocksInSector.map((stock, index) => (
               <div

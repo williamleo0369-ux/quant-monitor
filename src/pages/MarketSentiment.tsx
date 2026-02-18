@@ -22,7 +22,7 @@ const sentimentData = [
   { name: '贪婪', value: 15, color: '#ef4444' },
 ]
 
-const fearGreedIndex = [{ value: 65, fill: '#3b82f6' }]
+const fearGreedIndex = [{ value: 78, fill: '#ef4444' }]
 
 const sentimentTrend = Array.from({ length: 30 }, (_, i) => ({
   day: `Day ${i + 1}`,
@@ -31,18 +31,18 @@ const sentimentTrend = Array.from({ length: 30 }, (_, i) => ({
 }))
 
 const indicators = [
-  { name: '融资余额', value: 15678, change: 2.3, status: 'bullish' },
-  { name: '北向资金', value: 89, change: -1.5, status: 'bearish' },
-  { name: '成交量', value: 9876, change: 15.2, status: 'bullish' },
-  { name: '涨停数', value: 45, change: 12, status: 'bullish' },
-  { name: '跌停数', value: 12, change: -8, status: 'bearish' },
-  { name: '换手率', value: 2.34, change: 0.5, status: 'neutral' },
+  { name: '融资余额', value: 18567, change: 5.8, status: 'bullish' },
+  { name: '北向资金', value: 156, change: 12.5, status: 'bullish' },
+  { name: '成交量', value: 12345, change: 28.6, status: 'bullish' },
+  { name: '涨停数', value: 89, change: 45, status: 'bullish' },
+  { name: '跌停数', value: 8, change: -25, status: 'bearish' },
+  { name: '换手率', value: 3.56, change: 1.2, status: 'bullish' },
 ]
 
 const marketBreadth = [
-  { name: '上涨', value: 2456, color: '#ef4444' },
-  { name: '下跌', value: 1876, color: '#22c55e' },
-  { name: '平盘', value: 456, color: '#9ca3af' },
+  { name: '上涨', value: 3245, color: '#ef4444' },
+  { name: '下跌', value: 1234, color: '#22c55e' },
+  { name: '平盘', value: 321, color: '#9ca3af' },
 ]
 
 export default function MarketSentiment() {
@@ -54,7 +54,7 @@ export default function MarketSentiment() {
     return { text: '极度贪婪', icon: Smile, color: 'text-red-500' }
   }
 
-  const currentSentiment = getSentimentLabel(65)
+  const currentSentiment = getSentimentLabel(78)
   const SentimentIcon = currentSentiment.icon
 
   return (
@@ -62,7 +62,7 @@ export default function MarketSentiment() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">市场情绪</h1>
-        <div className="text-sm text-gray-500">数据更新时间: 2024-01-15 15:00</div>
+        <div className="text-sm text-gray-500">数据更新时间: 2026-02-18 15:00</div>
       </div>
 
       {/* Fear & Greed Index */}
@@ -84,7 +84,7 @@ export default function MarketSentiment() {
               </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-4xl font-bold text-gray-800">65</div>
+              <div className="text-4xl font-bold text-gray-800">78</div>
               <div className={`flex items-center gap-1 ${currentSentiment.color}`}>
                 <SentimentIcon className="w-5 h-5" />
                 <span className="font-medium">{currentSentiment.text}</span>
@@ -136,7 +136,7 @@ export default function MarketSentiment() {
                   <div
                     className="h-2 rounded-full"
                     style={{
-                      width: `${(item.value / 4788) * 100}%`,
+                      width: `${(item.value / 4800) * 100}%`,
                       backgroundColor: item.color,
                     }}
                   ></div>
@@ -147,7 +147,7 @@ export default function MarketSentiment() {
           <div className="mt-4 p-3 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-600">涨跌比</div>
             <div className="text-2xl font-bold text-gray-800">
-              {(2456 / 1876).toFixed(2)} : 1
+              {(3245 / 1234).toFixed(2)} : 1
             </div>
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function MarketSentiment() {
         <div>
           <div className="font-medium text-yellow-800">市场情绪提示</div>
           <div className="text-sm text-yellow-700 mt-1">
-            当前市场情绪指数为65，处于"贪婪"区间。历史数据显示，当指数超过75时市场可能出现回调风险，建议保持谨慎。
+            当前市场情绪指数为78，处于"极度贪婪"区间。受DeepSeek概念和人形机器人板块带动，市场热情高涨。历史数据显示，当指数超过80时市场可能出现回调风险，建议逢高减仓。
           </div>
         </div>
       </div>
