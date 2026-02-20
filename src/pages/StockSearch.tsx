@@ -358,20 +358,21 @@ export default function StockSearch() {
                           <div className={`flex items-center gap-1 text-sm ${
                             stock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'
                           }`}>
-                            {stock.changePercent >= 0 ? (
-                              <TrendingUp className="w-4 h-4" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" />
-                            )}
-                            {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                            <span className="inline-flex">
+                              {stock.changePercent >= 0 && <TrendingUp className="w-4 h-4" />}
+                              {stock.changePercent < 0 && <TrendingDown className="w-4 h-4" />}
+                            </span>
+                            <span>{stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%</span>
                           </div>
                         </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            isInWatchlist(stock.symbol, stock.market)
-                              ? removeFromWatchlist(stock.symbol, stock.market)
-                              : addToWatchlist(stock)
+                            if (isInWatchlist(stock.symbol, stock.market)) {
+                              removeFromWatchlist(stock.symbol, stock.market)
+                            } else {
+                              addToWatchlist(stock)
+                            }
                           }}
                           className={`p-2 rounded-lg transition-colors ${
                             isInWatchlist(stock.symbol, stock.market)
@@ -379,7 +380,7 @@ export default function StockSearch() {
                               : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
                           }`}
                         >
-                          <Star className={`w-5 h-5 ${isInWatchlist(stock.symbol, stock.market) ? 'fill-yellow-400' : ''}`} />
+                          <Star className="w-5 h-5" fill={isInWatchlist(stock.symbol, stock.market) ? '#facc15' : 'none'} />
                         </button>
                       </div>
                     </div>
@@ -455,12 +456,11 @@ export default function StockSearch() {
                           <div className={`flex items-center gap-1 text-sm ${
                             stock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'
                           }`}>
-                            {stock.changePercent >= 0 ? (
-                              <TrendingUp className="w-4 h-4" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" />
-                            )}
-                            {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                            <span className="inline-flex">
+                              {stock.changePercent >= 0 && <TrendingUp className="w-4 h-4" />}
+                              {stock.changePercent < 0 && <TrendingDown className="w-4 h-4" />}
+                            </span>
+                            <span>{stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%</span>
                           </div>
                         </div>
                         <button
@@ -498,27 +498,24 @@ export default function StockSearch() {
                     </div>
                   </div>
                   <button
-                    onClick={() => isInWatchlist(selectedStock.symbol, selectedStock.market)
-                      ? removeFromWatchlist(selectedStock.symbol, selectedStock.market)
-                      : addToWatchlist(selectedStock)
-                    }
+                    onClick={() => {
+                      if (isInWatchlist(selectedStock.symbol, selectedStock.market)) {
+                        removeFromWatchlist(selectedStock.symbol, selectedStock.market)
+                      } else {
+                        addToWatchlist(selectedStock)
+                      }
+                    }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                       isInWatchlist(selectedStock.symbol, selectedStock.market)
                         ? 'bg-yellow-50 text-yellow-600'
                         : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                     }`}
                   >
-                    {isInWatchlist(selectedStock.symbol, selectedStock.market) ? (
-                      <>
-                        <Star className="w-4 h-4 fill-yellow-400" />
-                        已关注
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        加自选
-                      </>
-                    )}
+                    <span className="inline-flex">
+                      {isInWatchlist(selectedStock.symbol, selectedStock.market) && <Star className="w-4 h-4" fill="#facc15" />}
+                      {!isInWatchlist(selectedStock.symbol, selectedStock.market) && <Plus className="w-4 h-4" />}
+                    </span>
+                    <span>{isInWatchlist(selectedStock.symbol, selectedStock.market) ? '已关注' : '加自选'}</span>
                   </button>
                 </div>
 
@@ -527,11 +524,10 @@ export default function StockSearch() {
                   <div className={`flex items-center gap-2 mt-1 ${
                     selectedStock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'
                   }`}>
-                    {selectedStock.changePercent >= 0 ? (
-                      <TrendingUp className="w-5 h-5" />
-                    ) : (
-                      <TrendingDown className="w-5 h-5" />
-                    )}
+                    <span className="inline-flex">
+                      {selectedStock.changePercent >= 0 && <TrendingUp className="w-5 h-5" />}
+                      {selectedStock.changePercent < 0 && <TrendingDown className="w-5 h-5" />}
+                    </span>
                     <span className="text-lg font-medium">
                       {selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.change.toFixed(2)}
                       ({selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.changePercent.toFixed(2)}%)
