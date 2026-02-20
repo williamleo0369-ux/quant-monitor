@@ -108,27 +108,27 @@ const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
 
   switch (period) {
     case '1D':
-      dataPoints = 48 // 每30分钟一个点，一天约48个点
+      dataPoints = 48
       intervalMinutes = 30
       price = basePrice * 0.995
       break
     case '5D':
-      dataPoints = 60 // 5天，每2小时一个点
+      dataPoints = 60
       intervalMinutes = 120
       price = basePrice * 0.98
       break
     case '1M':
-      dataPoints = 30 // 30天
+      dataPoints = 30
       intervalMinutes = 24 * 60
       price = basePrice * 0.95
       break
     case '3M':
-      dataPoints = 90 // 90天
+      dataPoints = 90
       intervalMinutes = 24 * 60
       price = basePrice * 0.90
       break
     case '1Y':
-      dataPoints = 250 // 约一年交易日
+      dataPoints = 250
       intervalMinutes = 24 * 60
       price = basePrice * 0.75
       break
@@ -138,8 +138,8 @@ const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
       price = basePrice * 0.95
   }
 
-  // 计算波动幅度
   const volatility = period === '1D' ? 0.005 : period === '5D' ? 0.01 : period === '1M' ? 0.02 : period === '3M' ? 0.025 : 0.03
+  let lastYear: number | null = null
 
   for (let i = dataPoints; i >= 0; i--) {
     const change = (Math.random() - 0.48) * basePrice * volatility
@@ -149,34 +149,57 @@ const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
     const date = new Date(now)
     date.setMinutes(date.getMinutes() - i * intervalMinutes)
 
-    // 根据周期格式化日期标签
+    // 根据周期格式化日期标签 - 在年份变化或首个数据点显示年份
     let dateLabel: string
+    const currentYear = date.getFullYear()
+    const isFirstPoint = i === dataPoints
+    const yearChanged = lastYear !== null && lastYear !== currentYear
+
     if (period === '1D') {
       dateLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
     } else if (period === '5D') {
-      dateLabel = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`
-    } else if (period === '1Y' || period === '3M') {
-      // 对于较长周期，显示年份
-      const currentYear = now.getFullYear()
-      if (date.getFullYear() !== currentYear) {
-        dateLabel = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+      if (isFirstPoint) {
+        dateLabel = `${currentYear}/${date.getMonth() + 1}/${date.getDate()}`
       } else {
         dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
       }
     } else {
-      dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
+      // 1M, 3M, 1Y - 在首个数据点和年份变化时显示年份
+      if (isFirstPoint || yearChanged) {
+        dateLabel = `${currentYear}/${date.getMonth() + 1}/${date.getDate()}`
+      } else {
+        dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
+      }
     }
+
+    lastYear = currentYear
 
     data.push({
       date: dateLabel,
       fullDate: date.toISOString(),
       price: Number(price.toFixed(3)),
-      year: date.getFullYear(),
+      year: currentYear,
       month: date.getMonth() + 1,
       day: date.getDate()
     })
   }
   return data
+}
+
+// 获取图表时间范围描述
+const getChartDateRange = (chartData: any[], period: TimePeriod): string => {
+  if (chartData.length === 0) return ''
+  const first = chartData[0]
+  const last = chartData[chartData.length - 1]
+
+  if (period === '1D') {
+    return `${first.year}年${first.month}月${first.day}日`
+  }
+
+  if (first.year === last.year) {
+    return `${first.year}年${first.month}/${first.day} - ${last.month}/${last.day}`
+  }
+  return `${first.year}/${first.month}/${first.day} - ${last.year}/${last.month}/${last.day}`
 }
 
 // 生成趋势分析
@@ -626,7 +649,7 @@ export default function StockSearch() {
 
               {/* Price Chart */}
               <div className="bg-white rounded-xl p-6 border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-blue-500" />
                     {selectedStock.name} 走势
@@ -647,6 +670,10 @@ export default function StockSearch() {
                       </button>
                     ))}
                   </div>
+                </div>
+                {/* 显示时间范围 */}
+                <div className="text-sm text-gray-500 mb-3">
+                  {getChartDateRange(chartData, chartPeriod)}
                 </div>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
