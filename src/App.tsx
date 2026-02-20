@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import MarketAnalysis from './pages/MarketAnalysis'
+import StockSearch from './pages/StockSearch'
 import StockBacktest from './pages/StockBacktest'
 import SectorAnalysis from './pages/SectorAnalysis'
 import HotspotTracking from './pages/HotspotTracking'
@@ -22,6 +23,8 @@ function App() {
     switch (currentPage) {
       case 'market-analysis':
         return <MarketAnalysis />
+      case 'stock-search':
+        return <StockSearch />
       case 'stock-backtest':
         return <StockBacktest />
       case 'sector-analysis':

@@ -12,7 +12,8 @@ import {
   FileBox,
   Bot,
   Library,
-  Settings
+  Settings,
+  Search
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 const menuItems = [
   { id: 'market-analysis', label: '行情分析', icon: TrendingUp },
+  { id: 'stock-search', label: '自选股查询', icon: Search },
   { id: 'stock-backtest', label: '单股回测', icon: BookOpen },
   { id: 'sector-analysis', label: '板块分析', icon: LayoutGrid },
   { id: 'hotspot-tracking', label: '热点追踪', icon: Heart },
