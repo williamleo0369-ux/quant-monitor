@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import {
   LineChart,
   Line,
@@ -14,6 +14,7 @@ import {
   Legend,
 } from 'recharts'
 import { Play, RotateCcw, Download, Plus, Trash2, Edit2, X, Settings, Calendar, TrendingUp, AlertTriangle, CheckCircle, Pause } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 // 策略类型定义
 interface Strategy {
@@ -159,8 +160,42 @@ const loadStrategies = (): Strategy[] => {
   ]
 }
 
+// Modal组件 - 使用Portal避免DOM问题
+function Modal({ isOpen, onClose, title, children }: {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+}) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  if (!isOpen || !mounted) return null
+
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-xl p-6 w-[500px] max-h-[90vh] overflow-y-auto z-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+
+  return createPortal(modalContent, document.body)
+}
+
 export default function StrategyBacktest() {
-  const [strategies, setStrategies] = useState<Strategy[]>(loadStrategies)
+  const [strategies, setStrategies] = useState<Strategy[]>([])
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [showNewModal, setShowNewModal] = useState(false)
@@ -183,9 +218,16 @@ export default function StrategyBacktest() {
     threshold: 2,
   })
 
+  // 初始化加载策略
+  useEffect(() => {
+    setStrategies(loadStrategies())
+  }, [])
+
   // 保存策略到 localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(strategies))
+    if (strategies.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(strategies))
+    }
   }, [strategies])
 
   // 运行回测
@@ -296,10 +338,17 @@ export default function StrategyBacktest() {
   }
 
   // 计算组合指标
+  const strategiesWithResults = strategies.filter(s => s.results)
   const portfolioMetrics = {
-    totalReturn: strategies.reduce((sum, s) => sum + (s.results?.totalReturn || 0), 0) / Math.max(strategies.filter(s => s.results).length, 1),
-    avgSharpe: strategies.reduce((sum, s) => sum + (s.results?.sharpeRatio || 0), 0) / Math.max(strategies.filter(s => s.results).length, 1),
-    maxDrawdown: Math.max(...strategies.map(s => s.results?.maxDrawdown || 0)),
+    totalReturn: strategiesWithResults.length > 0
+      ? strategiesWithResults.reduce((sum, s) => sum + (s.results?.totalReturn || 0), 0) / strategiesWithResults.length
+      : 0,
+    avgSharpe: strategiesWithResults.length > 0
+      ? strategiesWithResults.reduce((sum, s) => sum + (s.results?.sharpeRatio || 0), 0) / strategiesWithResults.length
+      : 0,
+    maxDrawdown: strategiesWithResults.length > 0
+      ? Math.max(...strategiesWithResults.map(s => s.results?.maxDrawdown || 0))
+      : 0,
     activeCount: strategies.filter(s => s.status === 'active').length,
   }
 
@@ -308,6 +357,115 @@ export default function StrategyBacktest() {
     name: s.name,
     value: s.params.positionSize || 0
   }))
+
+  // 渲染策略表单
+  const renderStrategyForm = () => (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">策略名称</label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="输入策略名称"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">策略类型</label>
+        <select
+          value={formData.type}
+          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {strategyTypes.map(type => (
+            <option key={type.value} value={type.value}>{type.label}</option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          {strategyTypes.find(t => t.value === formData.type)?.description}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {(formData.type === 'dual_ma' || formData.type === 'macd') && (
+          <Fragment>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">短期均线</label>
+              <input
+                type="number"
+                value={formData.shortPeriod}
+                onChange={(e) => setFormData({ ...formData, shortPeriod: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">长期均线</label>
+              <input
+                type="number"
+                value={formData.longPeriod}
+                onChange={(e) => setFormData({ ...formData, longPeriod: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </Fragment>
+        )}
+
+        {(formData.type === 'momentum' || formData.type === 'rsi' || formData.type === 'mean_reversion') && (
+          <Fragment>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">回看周期</label>
+              <input
+                type="number"
+                value={formData.lookbackPeriod}
+                onChange={(e) => setFormData({ ...formData, lookbackPeriod: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">阈值</label>
+              <input
+                type="number"
+                value={formData.threshold}
+                onChange={(e) => setFormData({ ...formData, threshold: Number(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </Fragment>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">止损 (%)</label>
+          <input
+            type="number"
+            value={formData.stopLoss}
+            onChange={(e) => setFormData({ ...formData, stopLoss: Number(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">止盈 (%)</label>
+          <input
+            type="number"
+            value={formData.takeProfit}
+            onChange={(e) => setFormData({ ...formData, takeProfit: Number(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">仓位比例 (%)</label>
+          <input
+            type="number"
+            value={formData.positionSize}
+            onChange={(e) => setFormData({ ...formData, positionSize: Number(e.target.value) })}
+            max={100}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="p-6 space-y-6">
@@ -327,7 +485,7 @@ export default function StrategyBacktest() {
           </button>
           <button
             onClick={handleRunAllBacktest}
-            disabled={isRunning}
+            disabled={isRunning || strategies.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
           >
             {isRunning ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
@@ -417,73 +575,81 @@ export default function StrategyBacktest() {
               </tr>
             </thead>
             <tbody>
-              {strategies.map((strategy) => (
-                <tr
-                  key={strategy.id}
-                  onClick={() => setSelectedStrategy(strategy)}
-                  className={`border-b border-gray-100 cursor-pointer transition-colors ${
-                    selectedStrategy?.id === strategy.id ? 'bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <td className="py-3 px-4 font-medium">{strategy.name}</td>
-                  <td className="py-3 px-4">
-                    <span className="px-2 py-1 bg-gray-100 rounded text-xs">
-                      {strategyTypes.find(t => t.value === strategy.type)?.label || strategy.type}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleStrategyStatus(strategy.id) }}
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        strategy.status === 'active'
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-yellow-100 text-yellow-600'
-                      }`}
-                    >
-                      {strategy.status === 'active' ? '运行中' : '已暂停'}
-                    </button>
-                  </td>
-                  <td className="py-3 px-4">
-                    {strategy.results ? (
-                      <span className={`font-medium ${strategy.results.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {strategy.results.totalReturn >= 0 ? '+' : ''}{strategy.results.totalReturn}%
-                      </span>
-                    ) : <span className="text-gray-400">未回测</span>}
-                  </td>
-                  <td className="py-3 px-4">{strategy.results?.sharpeRatio || '-'}</td>
-                  <td className="py-3 px-4">
-                    {strategy.results ? (
-                      <span className="text-red-500">-{strategy.results.maxDrawdown}%</span>
-                    ) : '-'}
-                  </td>
-                  <td className="py-3 px-4">{strategy.results?.winRate ? `${strategy.results.winRate}%` : '-'}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openEditModal(strategy) }}
-                        className="text-blue-400 hover:text-blue-600 p-1"
-                        title="编辑"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleStrategyStatus(strategy.id) }}
-                        className={`p-1 ${strategy.status === 'active' ? 'text-yellow-400 hover:text-yellow-600' : 'text-green-400 hover:text-green-600'}`}
-                        title={strategy.status === 'active' ? '暂停' : '启动'}
-                      >
-                        {strategy.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteStrategy(strategy.id) }}
-                        className="text-red-400 hover:text-red-600 p-1"
-                        title="删除"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+              {strategies.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-gray-400">
+                    暂无策略，点击"新建策略"创建第一个策略
                   </td>
                 </tr>
-              ))}
+              ) : (
+                strategies.map((strategy) => (
+                  <tr
+                    key={strategy.id}
+                    onClick={() => setSelectedStrategy(strategy)}
+                    className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                      selectedStrategy?.id === strategy.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <td className="py-3 px-4 font-medium">{strategy.name}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-1 bg-gray-100 rounded text-xs">
+                        {strategyTypes.find(t => t.value === strategy.type)?.label || strategy.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleStrategyStatus(strategy.id) }}
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          strategy.status === 'active'
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-yellow-100 text-yellow-600'
+                        }`}
+                      >
+                        {strategy.status === 'active' ? '运行中' : '已暂停'}
+                      </button>
+                    </td>
+                    <td className="py-3 px-4">
+                      {strategy.results ? (
+                        <span className={`font-medium ${strategy.results.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {strategy.results.totalReturn >= 0 ? '+' : ''}{strategy.results.totalReturn}%
+                        </span>
+                      ) : <span className="text-gray-400">未回测</span>}
+                    </td>
+                    <td className="py-3 px-4">{strategy.results?.sharpeRatio ?? '-'}</td>
+                    <td className="py-3 px-4">
+                      {strategy.results ? (
+                        <span className="text-red-500">-{strategy.results.maxDrawdown}%</span>
+                      ) : '-'}
+                    </td>
+                    <td className="py-3 px-4">{strategy.results?.winRate ? `${strategy.results.winRate}%` : '-'}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditModal(strategy) }}
+                          className="text-blue-400 hover:text-blue-600 p-1"
+                          title="编辑"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleStrategyStatus(strategy.id) }}
+                          className={`p-1 ${strategy.status === 'active' ? 'text-yellow-400 hover:text-yellow-600' : 'text-green-400 hover:text-green-600'}`}
+                          title={strategy.status === 'active' ? '暂停' : '启动'}
+                        >
+                          {strategy.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteStrategy(strategy.id) }}
+                          className="text-red-400 hover:text-red-600 p-1"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -522,7 +688,7 @@ export default function StrategyBacktest() {
             </div>
           </div>
           <div className="h-80">
-            {selectedStrategy?.results?.data ? (
+            {selectedStrategy?.results?.data && selectedStrategy.results.data.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={selectedStrategy.results.data}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -558,28 +724,34 @@ export default function StrategyBacktest() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">策略仓位配置</h2>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={allocationData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={70}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {allocationData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => [`${value}%`, '仓位']} />
-              </PieChart>
-            </ResponsiveContainer>
+            {allocationData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={allocationData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {allocationData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`${value}%`, '仓位']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">
+                <p>暂无策略</p>
+              </div>
+            )}
           </div>
           <div className="space-y-2 mt-2">
             {allocationData.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between text-sm">
+              <div key={`allocation-${index}`} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                   <span className="text-gray-600 truncate max-w-[120px]">{item.name}</span>
@@ -619,225 +791,43 @@ export default function StrategyBacktest() {
       </div>
 
       {/* 新建策略弹窗 */}
-      {showNewModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-[500px] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">新建策略</h2>
-              <button onClick={() => setShowNewModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">策略名称</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="输入策略名称"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">策略类型</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {strategyTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {strategyTypes.find(t => t.value === formData.type)?.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {(formData.type === 'dual_ma' || formData.type === 'macd') && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">短期均线</label>
-                      <input
-                        type="number"
-                        value={formData.shortPeriod}
-                        onChange={(e) => setFormData({ ...formData, shortPeriod: Number(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">长期均线</label>
-                      <input
-                        type="number"
-                        value={formData.longPeriod}
-                        onChange={(e) => setFormData({ ...formData, longPeriod: Number(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </>
-                )}
-
-                {(formData.type === 'momentum' || formData.type === 'rsi' || formData.type === 'mean_reversion') && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">回看周期</label>
-                      <input
-                        type="number"
-                        value={formData.lookbackPeriod}
-                        onChange={(e) => setFormData({ ...formData, lookbackPeriod: Number(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">阈值</label>
-                      <input
-                        type="number"
-                        value={formData.threshold}
-                        onChange={(e) => setFormData({ ...formData, threshold: Number(e.target.value) })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">止损 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.stopLoss}
-                    onChange={(e) => setFormData({ ...formData, stopLoss: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">止盈 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.takeProfit}
-                    onChange={(e) => setFormData({ ...formData, takeProfit: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">仓位比例 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.positionSize}
-                    onChange={(e) => setFormData({ ...formData, positionSize: Number(e.target.value) })}
-                    max={100}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowNewModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleCreateStrategy}
-                  disabled={!formData.name}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-                >
-                  创建策略
-                </button>
-              </div>
-            </div>
-          </div>
+      <Modal isOpen={showNewModal} onClose={() => setShowNewModal(false)} title="新建策略">
+        {renderStrategyForm()}
+        <div className="flex gap-3 pt-4 mt-4 border-t border-gray-100">
+          <button
+            onClick={() => setShowNewModal(false)}
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleCreateStrategy}
+            disabled={!formData.name}
+            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          >
+            创建策略
+          </button>
         </div>
-      )}
+      </Modal>
 
       {/* 编辑策略弹窗 */}
-      {showEditModal && selectedStrategy && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-[500px] max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">编辑策略</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">策略名称</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">策略类型</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {strategyTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">止损 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.stopLoss}
-                    onChange={(e) => setFormData({ ...formData, stopLoss: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">止盈 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.takeProfit}
-                    onChange={(e) => setFormData({ ...formData, takeProfit: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">仓位比例 (%)</label>
-                  <input
-                    type="number"
-                    value={formData.positionSize}
-                    onChange={(e) => setFormData({ ...formData, positionSize: Number(e.target.value) })}
-                    max={100}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleEditStrategy}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  保存修改
-                </button>
-              </div>
-            </div>
-          </div>
+      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="编辑策略">
+        {renderStrategyForm()}
+        <div className="flex gap-3 pt-4 mt-4 border-t border-gray-100">
+          <button
+            onClick={() => setShowEditModal(false)}
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleEditStrategy}
+            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            保存修改
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }
