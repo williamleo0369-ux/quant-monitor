@@ -175,8 +175,8 @@ export default function StrategyBacktest() {
                   }}
                 />
                 <ReferenceLine y={10000} stroke="#e5e7eb" strokeDasharray="3 3" />
-                <Line type="monotone" dataKey="strategy" stroke="#3b82f6" strokeWidth={2} dot={false} name="策略" />
-                <Line type="monotone" dataKey="benchmark" stroke="#9ca3af" strokeWidth={2} dot={false} name="基准" />
+                <Line type="monotone" dataKey="strategy" stroke="#3b82f6" strokeWidth={2} dot={false} name="策略" isAnimationActive={false} />
+                <Line type="monotone" dataKey="benchmark" stroke="#9ca3af" strokeWidth={2} dot={false} name="基准" isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -196,12 +196,13 @@ export default function StrategyBacktest() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  isAnimationActive={false}
                 >
                   {allocationData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip wrapperStyle={{}} />
               </PieChart>
             </ResponsiveContainer>
           </div>

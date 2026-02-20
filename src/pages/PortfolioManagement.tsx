@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   PieChart,
   Pie,
@@ -15,7 +15,7 @@ import {
 import {
   Plus, Settings, TrendingUp, TrendingDown, Wallet, Search,
   ArrowUpDown, Edit2, X, Check, RefreshCw, ChevronDown,
-  PieChartIcon, BarChart3, Target, AlertCircle, Save
+  PieChartIcon, BarChart3, Target, AlertCircle, Save, Trash2
 } from 'lucide-react'
 
 // 股票搜索数据库（含ETF基金）
@@ -200,8 +200,39 @@ const sectorColors: Record<string, string> = {
 }
 
 export default function PortfolioManagement() {
+  // localStorage 存储键
+  const STORAGE_KEY = 'quant_portfolios'
+  const SELECTED_ID_KEY = 'quant_selected_portfolio'
+
+  // 从 localStorage 加载组合数据
+  const loadPortfolios = (): Portfolio[] => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.error('加载组合数据失败:', e)
+    }
+    return portfoliosDatabase
+  }
+
+  // 从 localStorage 加载选中的组合ID
+  const loadSelectedId = (): string => {
+    try {
+      const saved = localStorage.getItem(SELECTED_ID_KEY)
+      if (saved) return saved
+    } catch (e) {
+      console.error('加载选中组合ID失败:', e)
+    }
+    return '1'
+  }
+
   // 状态管理
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState('1')
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState(loadSelectedId)
   const [selectedView, setSelectedView] = useState<'list' | 'chart'>('list')
   const [sortField, setSortField] = useState<'profit' | 'weight' | 'name'>('weight')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -213,8 +244,26 @@ export default function PortfolioManagement() {
   const [showAddStockModal, setShowAddStockModal] = useState(false)
   const [newPortfolioName, setNewPortfolioName] = useState('')
   const [newPortfolioCash, setNewPortfolioCash] = useState(100000)
-  const [portfolios, setPortfolios] = useState(portfoliosDatabase)
+  const [portfolios, setPortfolios] = useState<Portfolio[]>(loadPortfolios)
   const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false)
+
+  // 保存组合数据到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolios))
+    } catch (e) {
+      console.error('保存组合数据失败:', e)
+    }
+  }, [portfolios])
+
+  // 保存选中的组合ID到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(SELECTED_ID_KEY, selectedPortfolioId)
+    } catch (e) {
+      console.error('保存选中组合ID失败:', e)
+    }
+  }, [selectedPortfolioId])
 
   // 资金编辑状态
   const [isEditingCash, setIsEditingCash] = useState(false)
@@ -224,6 +273,10 @@ export default function PortfolioManagement() {
   const [stockSearchQuery, setStockSearchQuery] = useState('')
   const [addStockShares, setAddStockShares] = useState(100)
   const [selectedStockToAdd, setSelectedStockToAdd] = useState<{ code: string; name: string; price: number; sector: string } | null>(null)
+
+  // 编辑持股数量状态
+  const [isEditingShares, setIsEditingShares] = useState(false)
+  const [editSharesValue, setEditSharesValue] = useState(0)
 
   // 当前选中的组合
   const currentPortfolio = useMemo(() => {
@@ -398,7 +451,7 @@ export default function PortfolioManagement() {
       if (p.id === selectedPortfolioId) {
         // 检查现金是否足够
         if (p.cash < stockCost) {
-          alert(`现金不足！需要 ¥${stockCost.toLocaleString()}，可用 ¥${p.cash.toLocaleString()}`)
+          alert(`现金不足！需要 元${stockCost.toLocaleString()}，可用 元${p.cash.toLocaleString()}`)
           return p
         }
 
@@ -451,6 +504,83 @@ export default function PortfolioManagement() {
     setAddStockShares(100)
   }
 
+  // 删除股票
+  const handleDeleteStock = (stockCode: string) => {
+    if (!confirm('确定要删除该持仓吗？股票将被卖出并转为现金。')) return
+
+    setPortfolios(prev => prev.map(p => {
+      if (p.id === selectedPortfolioId) {
+        const stockToDelete = p.stocks.find(s => s.code === stockCode)
+        if (!stockToDelete) return p
+
+        // 卖出股票，资金回到现金
+        const saleValue = stockToDelete.current * stockToDelete.shares
+        const newStocks = p.stocks.filter(s => s.code !== stockCode)
+        const newCash = p.cash + saleValue
+        const stocksValue = newStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+
+        return {
+          ...p,
+          stocks: newStocks,
+          cash: newCash,
+          totalAsset: stocksValue + newCash
+        }
+      }
+      return p
+    }))
+
+    setShowStockDetail(null)
+  }
+
+  // 编辑持股数量
+  const handleStartEditShares = () => {
+    if (showStockDetail) {
+      setEditSharesValue(showStockDetail.shares)
+      setIsEditingShares(true)
+    }
+  }
+
+  const handleSaveShares = () => {
+    if (!showStockDetail || editSharesValue <= 0) return
+
+    const currentStock = currentPortfolio?.stocks.find(s => s.code === showStockDetail.code)
+    if (!currentStock) return
+
+    const sharesDiff = editSharesValue - currentStock.shares
+    const costDiff = sharesDiff * currentStock.current
+
+    // 检查现金是否足够（买入需要现金）
+    if (sharesDiff > 0 && (currentPortfolio?.cash || 0) < costDiff) {
+      alert(`现金不足！需要 ${costDiff.toLocaleString()} 元，可用 ${currentPortfolio?.cash.toLocaleString()} 元`)
+      return
+    }
+
+    setPortfolios(prev => prev.map(p => {
+      if (p.id === selectedPortfolioId) {
+        const newStocks = p.stocks.map(s => {
+          if (s.code === showStockDetail.code) {
+            return { ...s, shares: editSharesValue }
+          }
+          return s
+        })
+        const newCash = p.cash - costDiff
+        const stocksValue = newStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+
+        return {
+          ...p,
+          stocks: newStocks,
+          cash: newCash,
+          totalAsset: stocksValue + newCash
+        }
+      }
+      return p
+    }))
+
+    // 更新弹窗显示的数据
+    setShowStockDetail(prev => prev ? { ...prev, shares: editSharesValue } : null)
+    setIsEditingShares(false)
+  }
+
   // 刷新数据
   const handleRefresh = () => {
     setPortfolios(prev => prev.map(portfolio => {
@@ -477,10 +607,10 @@ export default function PortfolioManagement() {
   }
 
   const summaryData = currentPortfolio ? [
-    { label: '总资产', value: `¥${currentPortfolio.totalAsset.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: Wallet },
-    { label: '今日盈亏', value: `¥${currentPortfolio.todayPnl.toLocaleString()}`, change: currentPortfolio.todayPnlPercent, icon: TrendingUp },
-    { label: '持仓盈亏', value: `¥${currentPortfolio.totalPnl.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: BarChart3 },
-    { label: '可用现金', value: `¥${currentPortfolio.cash.toLocaleString()}`, change: 0, icon: Target, editable: true },
+    { label: '总资产', value: `元${currentPortfolio.totalAsset.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: Wallet },
+    { label: '今日盈亏', value: `元${currentPortfolio.todayPnl.toLocaleString()}`, change: currentPortfolio.todayPnlPercent, icon: TrendingUp },
+    { label: '持仓盈亏', value: `元${currentPortfolio.totalPnl.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: BarChart3 },
+    { label: '可用现金', value: `元${currentPortfolio.cash.toLocaleString()}`, change: 0, icon: Target, editable: true },
   ] : []
 
   return (
@@ -515,7 +645,7 @@ export default function PortfolioManagement() {
                     <div>
                       <div className="font-medium text-gray-800">{portfolio.name}</div>
                       <div className="text-xs text-gray-500">
-                        ¥{portfolio.totalAsset.toLocaleString()} ·
+                        元{portfolio.totalAsset.toLocaleString()} ·
                         <span className={portfolio.totalPnlPercent >= 0 ? 'text-red-500' : 'text-green-500'}>
                           {portfolio.totalPnlPercent >= 0 ? '+' : ''}{portfolio.totalPnlPercent}%
                         </span>
@@ -713,11 +843,11 @@ export default function PortfolioManagement() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">{stock.shares}</td>
-                        <td className="py-3 px-4 text-right">¥{stock.current.toFixed(2)}</td>
-                        <td className="py-3 px-4 text-right">¥{stock.marketValue.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">元{stock.current.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right">元{stock.marketValue.toLocaleString()}</td>
                         <td className="py-3 px-4 text-right">
                           <div className={stock.profit >= 0 ? 'text-red-500' : 'text-green-500'}>
-                            <div>{stock.profit >= 0 ? '+' : ''}¥{stock.profit.toFixed(0)}</div>
+                            <div>{stock.profit >= 0 ? '+' : ''}元{stock.profit.toFixed(0)}</div>
                             <div className="text-xs">{stock.profitPercent >= 0 ? '+' : ''}{stock.profitPercent.toFixed(2)}%</div>
                           </div>
                         </td>
@@ -733,15 +863,28 @@ export default function PortfolioManagement() {
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowStockDetail(stock)
-                            }}
-                            className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setShowStockDetail(stock)
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                              title="查看详情"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteStock(stock.code)
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                              title="删除持仓"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -755,7 +898,7 @@ export default function PortfolioManagement() {
                     </td>
                     <td className="py-3 px-4 text-right">-</td>
                     <td className="py-3 px-4 text-right">-</td>
-                    <td className="py-3 px-4 text-right">¥{currentPortfolio?.cash.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right">元{currentPortfolio?.cash.toLocaleString()}</td>
                     <td className="py-3 px-4 text-right text-gray-400">-</td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -798,7 +941,7 @@ export default function PortfolioManagement() {
                       <Cell key={`cell-${index}`} fill={sectorColors[entry.sector] || '#6b7280'} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`¥${value.toLocaleString()}`, '市值']} />
+                  <Tooltip formatter={(value: number) => [`元${value.toLocaleString()}`, '市值']} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -827,7 +970,7 @@ export default function PortfolioManagement() {
                 </Pie>
                 <Tooltip
                   formatter={(value: number, name: string, props: { payload?: { amount?: number } }) => [
-                    `${value}% (¥${(props.payload?.amount || 0).toLocaleString()})`,
+                    `${value}% (元${(props.payload?.amount || 0).toLocaleString()})`,
                     name
                   ]}
                 />
@@ -845,7 +988,7 @@ export default function PortfolioManagement() {
                   <span className="text-gray-600">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-xs">¥{item.amount.toLocaleString()}</span>
+                  <span className="text-gray-400 text-xs">元{item.amount.toLocaleString()}</span>
                   <span className="font-medium w-10 text-right">{item.value}%</span>
                 </div>
               </div>
@@ -963,7 +1106,7 @@ export default function PortfolioManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-2">当前资金</label>
                 <div className="text-2xl font-bold text-gray-400 mb-3">
-                  ¥{currentPortfolio?.cash.toLocaleString()}
+                  元{currentPortfolio?.cash.toLocaleString()}
                 </div>
               </div>
               <div>
@@ -1014,7 +1157,7 @@ export default function PortfolioManagement() {
             <div className="space-y-4">
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="text-sm text-blue-700">可用资金</div>
-                <div className="text-xl font-bold text-blue-800">¥{currentPortfolio?.cash.toLocaleString()}</div>
+                <div className="text-xl font-bold text-blue-800">元{currentPortfolio?.cash.toLocaleString()}</div>
               </div>
 
               {/* 股票搜索 */}
@@ -1059,7 +1202,7 @@ export default function PortfolioManagement() {
                           >
                             {stock.sector}
                           </span>
-                          <span className="text-gray-600">¥{stock.price}</span>
+                          <span className="text-gray-600">元{stock.price}</span>
                         </div>
                       </div>
                     ))}
@@ -1075,7 +1218,7 @@ export default function PortfolioManagement() {
                       <span className="font-semibold text-lg">{selectedStockToAdd.name}</span>
                       <span className="text-gray-400 ml-2">{selectedStockToAdd.code}</span>
                     </div>
-                    <span className="text-xl font-bold">¥{selectedStockToAdd.price}</span>
+                    <span className="text-xl font-bold">元{selectedStockToAdd.price}</span>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-2">买入数量 (股)</label>
@@ -1090,7 +1233,7 @@ export default function PortfolioManagement() {
                     <div className="flex justify-between mt-2 text-sm">
                       <span className="text-gray-500">预计金额</span>
                       <span className="font-medium text-blue-600">
-                        ¥{(selectedStockToAdd.price * addStockShares).toLocaleString()}
+                        元{(selectedStockToAdd.price * addStockShares).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1134,7 +1277,7 @@ export default function PortfolioManagement() {
             <div className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="text-sm text-blue-700 mb-2">当前可用资金</div>
-                <div className="text-2xl font-bold text-blue-800">¥{currentPortfolio?.cash.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-blue-800">元{currentPortfolio?.cash.toLocaleString()}</div>
               </div>
 
               <div className="border rounded-lg overflow-hidden">
@@ -1154,7 +1297,7 @@ export default function PortfolioManagement() {
                           <div className="font-medium">{stock.name}</div>
                           <div className="text-xs text-gray-400">{stock.code}</div>
                         </td>
-                        <td className="py-2 px-3 text-right">¥{stock.current}</td>
+                        <td className="py-2 px-3 text-right">元{stock.current}</td>
                         <td className="py-2 px-3 text-right">{stock.shares}股</td>
                         <td className="py-2 px-3">
                           <div className="flex items-center justify-center gap-1">
@@ -1203,7 +1346,7 @@ export default function PortfolioManagement() {
                 <h3 className="text-lg font-semibold">{showStockDetail.name}</h3>
                 <div className="text-sm text-gray-500">{showStockDetail.code} · {showStockDetail.sector}</div>
               </div>
-              <button onClick={() => setShowStockDetail(null)}>
+              <button onClick={() => { setShowStockDetail(null); setIsEditingShares(false) }}>
                 <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
               </button>
             </div>
@@ -1211,19 +1354,58 @@ export default function PortfolioManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="text-xs text-gray-500">现价</div>
-                  <div className="text-xl font-bold">¥{showStockDetail.current}</div>
+                  <div className="text-xl font-bold">{showStockDetail.current}元</div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="text-xs text-gray-500">成本价</div>
-                  <div className="text-xl font-bold">¥{showStockDetail.cost}</div>
+                  <div className="text-xl font-bold">{showStockDetail.cost}元</div>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="text-xs text-gray-500">持股数量</div>
-                  <div className="text-xl font-bold">{showStockDetail.shares} 股</div>
+                <div className="bg-gray-50 p-3 rounded-lg border-2 border-blue-200 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">持股数量</div>
+                    {!isEditingShares && (
+                      <button
+                        onClick={handleStartEditShares}
+                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                        title="编辑数量"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {isEditingShares ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="number"
+                        value={editSharesValue}
+                        onChange={(e) => setEditSharesValue(Number(e.target.value))}
+                        min={1}
+                        step={100}
+                        className="w-full px-2 py-1 text-lg font-bold border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleSaveShares}
+                        className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        title="保存"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setIsEditingShares(false)}
+                        className="p-1.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300"
+                        title="取消"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-xl font-bold">{showStockDetail.shares}股</div>
+                  )}
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <div className="text-xs text-gray-500">持仓市值</div>
-                  <div className="text-xl font-bold">¥{(showStockDetail.current * showStockDetail.shares).toLocaleString()}</div>
+                  <div className="text-xl font-bold">{(showStockDetail.current * showStockDetail.shares).toLocaleString()}元</div>
                 </div>
               </div>
 
@@ -1236,7 +1418,7 @@ export default function PortfolioManagement() {
                     (showStockDetail.current - showStockDetail.cost) >= 0 ? 'text-red-600' : 'text-green-600'
                   }`}>
                     {(showStockDetail.current - showStockDetail.cost) >= 0 ? '+' : ''}
-                    ¥{((showStockDetail.current - showStockDetail.cost) * showStockDetail.shares).toFixed(0)}
+                    {((showStockDetail.current - showStockDetail.cost) * showStockDetail.shares).toFixed(0)}元
                     ({(((showStockDetail.current - showStockDetail.cost) / showStockDetail.cost) * 100).toFixed(2)}%)
                   </span>
                 </div>
@@ -1244,13 +1426,13 @@ export default function PortfolioManagement() {
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setShowStockDetail(null)}
+                  onClick={() => { setShowStockDetail(null); setIsEditingShares(false) }}
                   className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
                 >
                   买入
                 </button>
                 <button
-                  onClick={() => setShowStockDetail(null)}
+                  onClick={() => { setShowStockDetail(null); setIsEditingShares(false) }}
                   className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                 >
                   卖出

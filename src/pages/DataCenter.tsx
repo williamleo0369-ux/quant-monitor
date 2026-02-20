@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Database,
   RefreshCw,
@@ -176,6 +176,45 @@ const storageDistribution = [
 ];
 
 export default function DataCenter() {
+  // localStorage 存储键
+  const SAVED_QUERIES_KEY = 'quant_saved_queries'
+  const QUERY_HISTORY_KEY = 'quant_query_history'
+
+  // 默认保存的查询
+  const defaultSavedQueries = [
+    { id: 1, name: '今日涨停股票', sql: 'SELECT * FROM stock_daily WHERE date = "2026-02-20" AND pct_change >= 9.9' },
+    { id: 2, name: '低估值蓝筹', sql: 'SELECT * FROM stock_valuation WHERE pe_ttm < 10 AND pb < 1 AND market_cap > 100000000000' },
+    { id: 3, name: '北向资金流入', sql: 'SELECT * FROM north_flow WHERE date >= "2026-02-01" ORDER BY net_buy DESC' },
+  ]
+
+  // 从 localStorage 加载保存的查询
+  const loadSavedQueries = () => {
+    try {
+      const saved = localStorage.getItem(SAVED_QUERIES_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch (e) {
+      console.error('加载保存的查询失败:', e)
+    }
+    return defaultSavedQueries
+  }
+
+  // 从 localStorage 加载查询历史
+  const loadQueryHistory = () => {
+    try {
+      const saved = localStorage.getItem(QUERY_HISTORY_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch (e) {
+      console.error('加载查询历史失败:', e)
+    }
+    return recentQueriesDatabase
+  }
+
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showQueryEditor, setShowQueryEditor] = useState(false);
@@ -189,12 +228,26 @@ export default function DataCenter() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [refreshingSource, setRefreshingSource] = useState<string | null>(null);
-  const [queryHistory, setQueryHistory] = useState(recentQueriesDatabase);
-  const [savedQueries, setSavedQueries] = useState<{ id: number; name: string; sql: string }[]>([
-    { id: 1, name: '今日涨停股票', sql: 'SELECT * FROM stock_daily WHERE date = "2026-02-20" AND pct_change >= 9.9' },
-    { id: 2, name: '低估值蓝筹', sql: 'SELECT * FROM stock_valuation WHERE pe_ttm < 10 AND pb < 1 AND market_cap > 100000000000' },
-    { id: 3, name: '北向资金流入', sql: 'SELECT * FROM north_flow WHERE date >= "2026-02-01" ORDER BY net_buy DESC' },
-  ]);
+  const [queryHistory, setQueryHistory] = useState(loadQueryHistory);
+  const [savedQueries, setSavedQueries] = useState<{ id: number; name: string; sql: string }[]>(loadSavedQueries);
+
+  // 保存查询到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(SAVED_QUERIES_KEY, JSON.stringify(savedQueries))
+    } catch (e) {
+      console.error('保存查询失败:', e)
+    }
+  }, [savedQueries])
+
+  // 保存查询历史到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(queryHistory))
+    } catch (e) {
+      console.error('保存查询历史失败:', e)
+    }
+  }, [queryHistory])
 
   // 过滤数据表
   const filteredTables = useMemo(() => {

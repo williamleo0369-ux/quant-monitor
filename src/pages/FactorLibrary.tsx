@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -271,6 +271,25 @@ const categoryStats = Object.entries(factorCategoriesConfig).map(([key, config])
 });
 
 export default function FactorLibrary() {
+  // localStorage 存储键
+  const FACTORS_STORAGE_KEY = 'quant_factors'
+
+  // 从 localStorage 加载因子数据
+  const loadFactors = () => {
+    try {
+      const saved = localStorage.getItem(FACTORS_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+        }
+      }
+    } catch (e) {
+      console.error('加载因子数据失败:', e)
+    }
+    return factorsDatabase
+  }
+
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFactor, setSelectedFactor] = useState(factorsDatabase[0]);
@@ -279,10 +298,19 @@ export default function FactorLibrary() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showBacktestModal, setShowBacktestModal] = useState(false);
   const [compareFactors, setCompareFactors] = useState<number[]>([]);
-  const [factors, setFactors] = useState(factorsDatabase);
+  const [factors, setFactors] = useState(loadFactors);
   const [icTrendData] = useState(generateICTrendData());
   const [sortBy, setSortBy] = useState<'ic' | 'ir' | 'name'>('ic');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // 保存因子数据到 localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(FACTORS_STORAGE_KEY, JSON.stringify(factors))
+    } catch (e) {
+      console.error('保存因子数据失败:', e)
+    }
+  }, [factors])
 
   // 过滤和排序因子
   const filteredFactors = useMemo(() => {
