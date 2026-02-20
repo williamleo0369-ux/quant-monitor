@@ -244,6 +244,7 @@ export default function StockSearch() {
   const [isSearching, setIsSearching] = useState(false)
   const [chartData, setChartData] = useState<any[]>([])
   const [chartPeriod, setChartPeriod] = useState<TimePeriod>('1M')
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
 
   // 加载自选股
   useEffect(() => {
@@ -262,6 +263,26 @@ export default function StockSearch() {
     if (selectedStock) {
       setChartData(generateChartData(selectedStock.price, chartPeriod))
     }
+  }, [selectedStock, chartPeriod])
+
+  // 每10分钟自动刷新行情数据
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // 刷新自选股行情
+      setWatchlist(prev => prev.map(stock => ({
+        ...stock,
+        price: stock.price * (1 + (Math.random() - 0.5) * 0.02),
+        change: stock.price * (Math.random() - 0.5) * 0.02,
+        changePercent: (Math.random() - 0.5) * 4
+      })))
+      // 刷新当前选中股票的图表数据
+      if (selectedStock) {
+        setChartData(generateChartData(selectedStock.price, chartPeriod))
+      }
+      setLastUpdateTime(new Date())
+    }, 10 * 60 * 1000) // 10分钟
+
+    return () => clearInterval(interval)
   }, [selectedStock, chartPeriod])
 
   // 搜索股票
@@ -337,8 +358,15 @@ export default function StockSearch() {
           <p className="text-sm text-gray-500 mt-1">支持A股、港股、美股查询，添加自选实时追踪</p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-500">
+            最后更新: {lastUpdateTime.toLocaleTimeString('zh-CN')}
+            <span className="ml-2 text-xs text-gray-400">(每10分钟自动刷新)</span>
+          </div>
           <button
-            onClick={refreshQuotes}
+            onClick={() => {
+              refreshQuotes()
+              setLastUpdateTime(new Date())
+            }}
             className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
