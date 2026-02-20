@@ -21,9 +21,9 @@ interface WatchlistStock extends Stock {
   notes?: string
 }
 
-// 模拟股票数据库
+// 模拟股票数据库（含ETF基金）
 const stockDatabase: Stock[] = [
-  // A股
+  // A股 - 主要个股
   { symbol: '600519', name: '贵州茅台', market: 'A股', price: 1688.88, change: 23.45, changePercent: 1.41, volume: '2.3万', marketCap: '2.12万亿', pe: 28.5, high52w: 1850, low52w: 1420 },
   { symbol: '000858', name: '五粮液', market: 'A股', price: 145.67, change: -2.33, changePercent: -1.57, volume: '5.6万', marketCap: '5640亿', pe: 22.3, high52w: 180, low52w: 120 },
   { symbol: '300750', name: '宁德时代', market: 'A股', price: 198.50, change: 5.80, changePercent: 3.01, volume: '12.3万', marketCap: '8720亿', pe: 35.2, high52w: 280, low52w: 150 },
@@ -34,6 +34,36 @@ const stockDatabase: Stock[] = [
   { symbol: '601899', name: '紫金矿业', market: 'A股', price: 15.88, change: 0.42, changePercent: 2.72, volume: '32.1万', marketCap: '4180亿', pe: 12.3, high52w: 18, low52w: 10 },
   { symbol: '000333', name: '美的集团', market: 'A股', price: 58.90, change: 1.20, changePercent: 2.08, volume: '6.8万', marketCap: '4120亿', pe: 14.5, high52w: 72, low52w: 48 },
   { symbol: '002415', name: '海康威视', market: 'A股', price: 32.15, change: -0.85, changePercent: -2.57, volume: '9.2万', marketCap: '3010亿', pe: 18.9, high52w: 45, low52w: 28 },
+  { symbol: '600900', name: '长江电力', market: 'A股', price: 28.65, change: 0.35, changePercent: 1.24, volume: '8.5万', marketCap: '6980亿', pe: 22.1, high52w: 32, low52w: 22 },
+  { symbol: '601012', name: '隆基绿能', market: 'A股', price: 22.45, change: -0.68, changePercent: -2.94, volume: '18.6万', marketCap: '1700亿', pe: 15.8, high52w: 45, low52w: 18 },
+  { symbol: '000651', name: '格力电器', market: 'A股', price: 38.90, change: 0.75, changePercent: 1.97, volume: '7.2万', marketCap: '2180亿', pe: 8.6, high52w: 48, low52w: 32 },
+  { symbol: '600276', name: '恒瑞医药', market: 'A股', price: 45.20, change: 1.30, changePercent: 2.96, volume: '6.8万', marketCap: '2880亿', pe: 42.5, high52w: 58, low52w: 35 },
+  { symbol: '002475', name: '立讯精密', market: 'A股', price: 32.80, change: 0.92, changePercent: 2.89, volume: '12.5万', marketCap: '2350亿', pe: 25.6, high52w: 42, low52w: 25 },
+  // A股 - ETF基金
+  { symbol: '518880', name: '黄金ETF', market: 'A股', price: 5.68, change: 0.08, changePercent: 1.43, volume: '856万', marketCap: '185亿', pe: 0, high52w: 6.2, low52w: 4.8 },
+  { symbol: '513130', name: '恒生科技ETF', market: 'A股', price: 0.785, change: 0.018, changePercent: 2.35, volume: '2.3亿', marketCap: '268亿', pe: 0, high52w: 0.95, low52w: 0.62 },
+  { symbol: '512100', name: '中证1000ETF', market: 'A股', price: 1.856, change: -0.025, changePercent: -1.33, volume: '1.5亿', marketCap: '156亿', pe: 0, high52w: 2.3, low52w: 1.6 },
+  { symbol: '588000', name: '科创50ETF', market: 'A股', price: 0.925, change: 0.015, changePercent: 1.65, volume: '1.8亿', marketCap: '458亿', pe: 0, high52w: 1.2, low52w: 0.78 },
+  { symbol: '510300', name: '沪深300ETF', market: 'A股', price: 3.92, change: 0.045, changePercent: 1.16, volume: '1.2亿', marketCap: '1250亿', pe: 0, high52w: 4.5, low52w: 3.5 },
+  { symbol: '510500', name: '中证500ETF', market: 'A股', price: 5.85, change: -0.08, changePercent: -1.35, volume: '8500万', marketCap: '680亿', pe: 0, high52w: 7.2, low52w: 5.2 },
+  { symbol: '510050', name: '上证50ETF', market: 'A股', price: 2.68, change: 0.035, changePercent: 1.32, volume: '6800万', marketCap: '820亿', pe: 0, high52w: 3.1, low52w: 2.4 },
+  { symbol: '159915', name: '创业板ETF', market: 'A股', price: 2.12, change: 0.048, changePercent: 2.32, volume: '1.5亿', marketCap: '380亿', pe: 0, high52w: 2.8, low52w: 1.8 },
+  { symbol: '159919', name: '沪深300ETF', market: 'A股', price: 4.05, change: 0.052, changePercent: 1.30, volume: '9200万', marketCap: '520亿', pe: 0, high52w: 4.6, low52w: 3.6 },
+  { symbol: '512880', name: '证券ETF', market: 'A股', price: 0.958, change: 0.028, changePercent: 3.01, volume: '2.8亿', marketCap: '285亿', pe: 0, high52w: 1.2, low52w: 0.8 },
+  { symbol: '512690', name: '酒ETF', market: 'A股', price: 1.125, change: -0.018, changePercent: -1.58, volume: '5600万', marketCap: '98亿', pe: 0, high52w: 1.5, low52w: 0.95 },
+  { symbol: '512660', name: '军工ETF', market: 'A股', price: 1.068, change: 0.022, changePercent: 2.10, volume: '1.2亿', marketCap: '165亿', pe: 0, high52w: 1.35, low52w: 0.88 },
+  { symbol: '159995', name: '芯片ETF', market: 'A股', price: 0.925, change: 0.035, changePercent: 3.93, volume: '2.5亿', marketCap: '320亿', pe: 0, high52w: 1.3, low52w: 0.72 },
+  { symbol: '515050', name: '5GETF', market: 'A股', price: 0.785, change: 0.012, changePercent: 1.55, volume: '8500万', marketCap: '125亿', pe: 0, high52w: 1.0, low52w: 0.68 },
+  { symbol: '513050', name: '中概互联ETF', market: 'A股', price: 0.658, change: 0.018, changePercent: 2.81, volume: '1.8亿', marketCap: '225亿', pe: 0, high52w: 0.95, low52w: 0.52 },
+  { symbol: '513100', name: '纳指ETF', market: 'A股', price: 1.625, change: 0.028, changePercent: 1.75, volume: '4500万', marketCap: '168亿', pe: 0, high52w: 1.85, low52w: 1.35 },
+  { symbol: '513500', name: '标普500ETF', market: 'A股', price: 1.485, change: 0.015, changePercent: 1.02, volume: '3200万', marketCap: '145亿', pe: 0, high52w: 1.65, low52w: 1.28 },
+  { symbol: '159941', name: '纳指ETF', market: 'A股', price: 1.58, change: 0.025, changePercent: 1.61, volume: '3800万', marketCap: '98亿', pe: 0, high52w: 1.78, low52w: 1.32 },
+  { symbol: '518800', name: '黄金基金ETF', market: 'A股', price: 5.52, change: 0.075, changePercent: 1.38, volume: '650万', marketCap: '85亿', pe: 0, high52w: 6.0, low52w: 4.6 },
+  { symbol: '159934', name: '黄金ETF', market: 'A股', price: 5.45, change: 0.068, changePercent: 1.26, volume: '480万', marketCap: '62亿', pe: 0, high52w: 5.9, low52w: 4.5 },
+  { symbol: '512010', name: '医药ETF', market: 'A股', price: 0.485, change: 0.012, changePercent: 2.54, volume: '1.2亿', marketCap: '168亿', pe: 0, high52w: 0.68, low52w: 0.42 },
+  { symbol: '512170', name: '医疗ETF', market: 'A股', price: 0.525, change: 0.015, changePercent: 2.94, volume: '9500万', marketCap: '145亿', pe: 0, high52w: 0.75, low52w: 0.45 },
+  { symbol: '159892', name: '光伏ETF', market: 'A股', price: 0.685, change: -0.025, changePercent: -3.52, volume: '1.5亿', marketCap: '125亿', pe: 0, high52w: 1.2, low52w: 0.58 },
+  { symbol: '516160', name: '新能源ETF', market: 'A股', price: 0.758, change: -0.018, changePercent: -2.32, volume: '8500万', marketCap: '98亿', pe: 0, high52w: 1.15, low52w: 0.65 },
   // 港股
   { symbol: '00700', name: '腾讯控股', market: '港股', price: 378.60, change: 8.40, changePercent: 2.27, volume: '1850万', marketCap: '3.58万亿', pe: 22.4, high52w: 420, low52w: 280 },
   { symbol: '09988', name: '阿里巴巴-SW', market: '港股', price: 82.35, change: 2.15, changePercent: 2.68, volume: '2560万', marketCap: '1.68万亿', pe: 15.8, high52w: 120, low52w: 62 },
@@ -41,6 +71,10 @@ const stockDatabase: Stock[] = [
   { symbol: '09618', name: '京东集团-SW', market: '港股', price: 125.80, change: 4.60, changePercent: 3.80, volume: '890万', marketCap: '3920亿', pe: 18.6, high52w: 168, low52w: 95 },
   { symbol: '01810', name: '小米集团-W', market: '港股', price: 18.92, change: 0.58, changePercent: 3.16, volume: '8560万', marketCap: '4720亿', pe: 28.3, high52w: 22, low52w: 12 },
   { symbol: '02318', name: '中国平安', market: '港股', price: 42.85, change: -0.35, changePercent: -0.81, volume: '1520万', marketCap: '7810亿', pe: 7.2, high52w: 52, low52w: 35 },
+  { symbol: '09999', name: '网易-S', market: '港股', price: 158.50, change: 3.80, changePercent: 2.46, volume: '680万', marketCap: '5120亿', pe: 18.5, high52w: 185, low52w: 125 },
+  { symbol: '01024', name: '快手-W', market: '港股', price: 52.80, change: 1.65, changePercent: 3.23, volume: '2350万', marketCap: '2280亿', pe: 0, high52w: 75, low52w: 38 },
+  { symbol: '02020', name: '安踏体育', market: '港股', price: 85.60, change: 2.15, changePercent: 2.58, volume: '520万', marketCap: '2380亿', pe: 22.8, high52w: 105, low52w: 68 },
+  { symbol: '00941', name: '中国移动', market: '港股', price: 72.50, change: 0.85, changePercent: 1.19, volume: '1850万', marketCap: '1.55万亿', pe: 10.2, high52w: 85, low52w: 58 },
   // 美股
   { symbol: 'AAPL', name: '苹果', market: '美股', price: 178.56, change: 2.34, changePercent: 1.33, volume: '5680万', marketCap: '2.78万亿', pe: 28.5, high52w: 199, low52w: 142 },
   { symbol: 'MSFT', name: '微软', market: '美股', price: 378.91, change: 5.67, changePercent: 1.52, volume: '2340万', marketCap: '2.81万亿', pe: 35.2, high52w: 420, low52w: 285 },
@@ -50,6 +84,13 @@ const stockDatabase: Stock[] = [
   { symbol: 'TSLA', name: '特斯拉', market: '美股', price: 245.67, change: -8.90, changePercent: -3.50, volume: '8920万', marketCap: '7820亿', pe: 58.2, high52w: 320, low52w: 152 },
   { symbol: 'META', name: 'Meta', market: '美股', price: 505.45, change: 12.30, changePercent: 2.49, volume: '1560万', marketCap: '1.29万亿', pe: 32.1, high52w: 542, low52w: 285 },
   { symbol: 'BABA', name: '阿里巴巴', market: '美股', price: 82.50, change: 1.85, changePercent: 2.29, volume: '1230万', marketCap: '2080亿', pe: 15.6, high52w: 120, low52w: 65 },
+  { symbol: 'JD', name: '京东', market: '美股', price: 28.65, change: 0.75, changePercent: 2.69, volume: '1560万', marketCap: '450亿', pe: 12.8, high52w: 42, low52w: 22 },
+  { symbol: 'PDD', name: '拼多多', market: '美股', price: 128.90, change: 4.25, changePercent: 3.41, volume: '2850万', marketCap: '1720亿', pe: 28.5, high52w: 158, low52w: 85 },
+  { symbol: 'NIO', name: '蔚来', market: '美股', price: 5.82, change: 0.18, changePercent: 3.19, volume: '4580万', marketCap: '115亿', pe: 0, high52w: 12, low52w: 4.5 },
+  { symbol: 'XPEV', name: '小鹏汽车', market: '美股', price: 8.95, change: 0.28, changePercent: 3.23, volume: '2150万', marketCap: '85亿', pe: 0, high52w: 18, low52w: 6.5 },
+  { symbol: 'LI', name: '理想汽车', market: '美股', price: 35.80, change: 1.25, changePercent: 3.62, volume: '1680万', marketCap: '380亿', pe: 42.5, high52w: 48, low52w: 25 },
+  { symbol: 'AMD', name: 'AMD', market: '美股', price: 165.20, change: 5.85, changePercent: 3.67, volume: '4520万', marketCap: '2680亿', pe: 45.8, high52w: 185, low52w: 95 },
+  { symbol: 'INTC', name: '英特尔', market: '美股', price: 42.50, change: -0.85, changePercent: -1.96, volume: '3850万', marketCap: '1780亿', pe: 0, high52w: 52, low52w: 28 },
 ]
 
 // 生成模拟K线数据
