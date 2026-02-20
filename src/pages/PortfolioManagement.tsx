@@ -18,8 +18,9 @@ import {
   PieChartIcon, BarChart3, Target, AlertCircle, Save
 } from 'lucide-react'
 
-// 股票搜索数据库
+// 股票搜索数据库（含ETF基金）
 const stockSearchDatabase: Record<string, { name: string; price: number; sector: string }> = {
+  // 个股
   '600519': { name: '贵州茅台', price: 1720, sector: '消费' },
   '300750': { name: '宁德时代', price: 198.45, sector: '新能源' },
   '002594': { name: '比亚迪', price: 312.80, sector: '新能源' },
@@ -30,9 +31,6 @@ const stockSearchDatabase: Record<string, { name: string; price: number; sector:
   '600036': { name: '招商银行', price: 35.5, sector: '金融' },
   '000858': { name: '五粮液', price: 158, sector: '消费' },
   '300059': { name: '东方财富', price: 16.8, sector: '金融' },
-  '518880': { name: '黄金ETF', price: 5.85, sector: 'ETF' },
-  '510300': { name: '沪深300ETF', price: 4.05, sector: 'ETF' },
-  '512480': { name: '半导体ETF', price: 1.42, sector: 'ETF' },
   '601689': { name: '拓普集团', price: 89.45, sector: '人形机器人' },
   '688111': { name: '金山办公', price: 345, sector: 'AI应用' },
   '300418': { name: '昆仑万维', price: 58.5, sector: 'AI应用' },
@@ -45,6 +43,43 @@ const stockSearchDatabase: Record<string, { name: string; price: number; sector:
   '603259': { name: '药明康德', price: 48.6, sector: '医疗' },
   '000001': { name: '平安银行', price: 11.2, sector: '金融' },
   '600900': { name: '长江电力', price: 28.9, sector: '公用事业' },
+  '002415': { name: '海康威视', price: 32.15, sector: '消费电子' },
+  '000651': { name: '格力电器', price: 38.9, sector: '消费' },
+  '600276': { name: '恒瑞医药', price: 45.2, sector: '医疗' },
+  '601899': { name: '紫金矿业', price: 15.88, sector: '资源' },
+  // ETF基金
+  '518880': { name: '黄金ETF', price: 5.68, sector: 'ETF' },
+  '513130': { name: '恒生科技ETF', price: 0.785, sector: 'ETF' },
+  '512100': { name: '中证1000ETF', price: 1.856, sector: 'ETF' },
+  '588000': { name: '科创50ETF', price: 0.925, sector: 'ETF' },
+  '510300': { name: '沪深300ETF', price: 3.92, sector: 'ETF' },
+  '510500': { name: '中证500ETF', price: 5.85, sector: 'ETF' },
+  '510050': { name: '上证50ETF', price: 2.68, sector: 'ETF' },
+  '159915': { name: '创业板ETF', price: 2.12, sector: 'ETF' },
+  '159919': { name: '沪深300ETF', price: 4.05, sector: 'ETF' },
+  '512880': { name: '证券ETF', price: 0.958, sector: 'ETF' },
+  '512690': { name: '酒ETF', price: 1.125, sector: 'ETF' },
+  '512660': { name: '军工ETF', price: 1.068, sector: 'ETF' },
+  '159995': { name: '芯片ETF', price: 0.925, sector: 'ETF' },
+  '515050': { name: '5GETF', price: 0.785, sector: 'ETF' },
+  '513050': { name: '中概互联ETF', price: 0.658, sector: 'ETF' },
+  '513100': { name: '纳指ETF', price: 1.625, sector: 'ETF' },
+  '513500': { name: '标普500ETF', price: 1.485, sector: 'ETF' },
+  '159941': { name: '纳指ETF', price: 1.58, sector: 'ETF' },
+  '518800': { name: '黄金基金ETF', price: 5.52, sector: 'ETF' },
+  '159934': { name: '黄金ETF', price: 5.45, sector: 'ETF' },
+  '512010': { name: '医药ETF', price: 0.485, sector: 'ETF' },
+  '512170': { name: '医疗ETF', price: 0.525, sector: 'ETF' },
+  '159892': { name: '光伏ETF', price: 0.685, sector: 'ETF' },
+  '516160': { name: '新能源ETF', price: 0.758, sector: 'ETF' },
+  '512480': { name: '半导体ETF', price: 1.42, sector: 'ETF' },
+  '159869': { name: '游戏ETF', price: 0.92, sector: 'ETF' },
+  '512800': { name: '银行ETF', price: 1.12, sector: 'ETF' },
+  '512200': { name: '房地产ETF', price: 0.58, sector: 'ETF' },
+  '515790': { name: '光伏ETF', price: 0.72, sector: 'ETF' },
+  '159801': { name: '芯片ETF', price: 0.88, sector: 'ETF' },
+  '562500': { name: '机器人ETF', price: 1.15, sector: 'ETF' },
+  '159807': { name: '科创板ETF', price: 0.95, sector: 'ETF' },
 }
 
 // 组合数据库
