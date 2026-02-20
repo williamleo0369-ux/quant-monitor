@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, Star, TrendingUp, TrendingDown, Plus, X, RefreshCw, Globe, AlertCircle, ChevronRight, BarChart3, Activity } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface Stock {
   symbol: string
@@ -93,19 +93,87 @@ const stockDatabase: Stock[] = [
   { symbol: 'INTC', name: '英特尔', market: '美股', price: 42.50, change: -0.85, changePercent: -1.96, volume: '3850万', marketCap: '1780亿', pe: 0, high52w: 52, low52w: 28 },
 ]
 
-// 生成模拟K线数据
-const generateChartData = (basePrice: number) => {
+// 时间周期类型
+type TimePeriod = '1D' | '5D' | '1M' | '3M' | '1Y'
+
+// 生成模拟K线数据（支持不同时间周期）
+const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
   const data = []
-  let price = basePrice * 0.95
-  for (let i = 30; i >= 0; i--) {
-    const change = (Math.random() - 0.48) * basePrice * 0.03
-    price = Math.max(price + change, basePrice * 0.8)
-    price = Math.min(price, basePrice * 1.1)
-    const date = new Date()
-    date.setDate(date.getDate() - i)
+  let price = basePrice
+  const now = new Date()
+
+  // 根据周期决定数据点数量和时间间隔
+  let dataPoints: number
+  let intervalMinutes: number
+
+  switch (period) {
+    case '1D':
+      dataPoints = 48 // 每30分钟一个点，一天约48个点
+      intervalMinutes = 30
+      price = basePrice * 0.995
+      break
+    case '5D':
+      dataPoints = 60 // 5天，每2小时一个点
+      intervalMinutes = 120
+      price = basePrice * 0.98
+      break
+    case '1M':
+      dataPoints = 30 // 30天
+      intervalMinutes = 24 * 60
+      price = basePrice * 0.95
+      break
+    case '3M':
+      dataPoints = 90 // 90天
+      intervalMinutes = 24 * 60
+      price = basePrice * 0.90
+      break
+    case '1Y':
+      dataPoints = 250 // 约一年交易日
+      intervalMinutes = 24 * 60
+      price = basePrice * 0.75
+      break
+    default:
+      dataPoints = 30
+      intervalMinutes = 24 * 60
+      price = basePrice * 0.95
+  }
+
+  // 计算波动幅度
+  const volatility = period === '1D' ? 0.005 : period === '5D' ? 0.01 : period === '1M' ? 0.02 : period === '3M' ? 0.025 : 0.03
+
+  for (let i = dataPoints; i >= 0; i--) {
+    const change = (Math.random() - 0.48) * basePrice * volatility
+    price = Math.max(price + change, basePrice * 0.6)
+    price = Math.min(price, basePrice * 1.2)
+
+    const date = new Date(now)
+    date.setMinutes(date.getMinutes() - i * intervalMinutes)
+
+    // 根据周期格式化日期标签
+    let dateLabel: string
+    if (period === '1D') {
+      dateLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+    } else if (period === '5D') {
+      dateLabel = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`
+    } else if (period === '1Y' || period === '3M') {
+      // 对于较长周期，显示年份
+      const currentYear = now.getFullYear()
+      if (date.getFullYear() !== currentYear) {
+        dateLabel = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+      } else {
+        dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
+      }
+    } else {
+      dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
+    }
+
     data.push({
-      date: `${date.getMonth() + 1}/${date.getDate()}`,
-      price: Number(price.toFixed(2))
+      date: dateLabel,
+      fullDate: date.toISOString(),
+      price: Number(price.toFixed(3)),
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate()
     })
   }
   return data
@@ -152,6 +220,7 @@ export default function StockSearch() {
   const [marketFilter, setMarketFilter] = useState<'all' | 'A股' | '港股' | '美股'>('all')
   const [isSearching, setIsSearching] = useState(false)
   const [chartData, setChartData] = useState<any[]>([])
+  const [chartPeriod, setChartPeriod] = useState<TimePeriod>('1M')
 
   // 加载自选股
   useEffect(() => {
@@ -168,9 +237,9 @@ export default function StockSearch() {
   // 更新图表数据
   useEffect(() => {
     if (selectedStock) {
-      setChartData(generateChartData(selectedStock.price))
+      setChartData(generateChartData(selectedStock.price, chartPeriod))
     }
-  }, [selectedStock])
+  }, [selectedStock, chartPeriod])
 
   // 搜索股票
   const handleSearch = () => {
@@ -557,26 +626,99 @@ export default function StockSearch() {
 
               {/* Price Chart */}
               <div className="bg-white rounded-xl p-6 border border-gray-100">
-                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-500" />
-                  30日走势
-                </h3>
-                <div className="h-48">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-500" />
+                    {selectedStock.name} 走势
+                  </h3>
+                  {/* 时间周期切换 */}
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                    {(['1D', '5D', '1M', '3M', '1Y'] as TimePeriod[]).map((period) => (
+                      <button
+                        key={period}
+                        onClick={() => setChartPeriod(period)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                          chartPeriod === period
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-800'
+                        }`}
+                      >
+                        {period === '1D' ? '1日' : period === '5D' ? '5日' : period === '1M' ? '1月' : period === '3M' ? '3月' : '1年'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                      <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Line
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={selectedStock.changePercent >= 0 ? '#3b82f6' : '#22c55e'} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={selectedStock.changePercent >= 0 ? '#3b82f6' : '#22c55e'} stopOpacity={0.05}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                        interval={chartPeriod === '1Y' ? 30 : chartPeriod === '3M' ? 10 : chartPeriod === '1D' ? 6 : 'preserveStartEnd'}
+                      />
+                      <YAxis
+                        domain={['auto', 'auto']}
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => value.toFixed(2)}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                        formatter={(value: number) => [value.toFixed(3), '价格']}
+                        labelFormatter={(label) => `日期: ${label}`}
+                      />
+                      <Area
                         type="monotone"
                         dataKey="price"
-                        stroke={selectedStock.changePercent >= 0 ? '#ef4444' : '#22c55e'}
+                        stroke="#3b82f6"
                         strokeWidth={2}
-                        dot={false}
-                        isAnimationActive={false}
+                        fill="url(#priceGradient)"
+                        isAnimationActive={true}
+                        animationDuration={500}
                       />
-                    </LineChart>
+                    </AreaChart>
                   </ResponsiveContainer>
+                </div>
+                {/* 数据统计 */}
+                <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
+                  <div className="text-center p-2 bg-gray-50 rounded">
+                    <div className="text-gray-500">最高</div>
+                    <div className="font-medium text-red-500">
+                      {chartData.length > 0 ? Math.max(...chartData.map(d => d.price)).toFixed(3) : '-'}
+                    </div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-50 rounded">
+                    <div className="text-gray-500">最低</div>
+                    <div className="font-medium text-green-500">
+                      {chartData.length > 0 ? Math.min(...chartData.map(d => d.price)).toFixed(3) : '-'}
+                    </div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-50 rounded">
+                    <div className="text-gray-500">开盘</div>
+                    <div className="font-medium text-gray-700">
+                      {chartData.length > 0 ? chartData[0]?.price.toFixed(3) : '-'}
+                    </div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-50 rounded">
+                    <div className="text-gray-500">现价</div>
+                    <div className="font-medium text-gray-700">
+                      {chartData.length > 0 ? chartData[chartData.length - 1]?.price.toFixed(3) : '-'}
+                    </div>
+                  </div>
                 </div>
               </div>
 
