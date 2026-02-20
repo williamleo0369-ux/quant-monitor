@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Search, Star, TrendingUp, TrendingDown, Plus, X, RefreshCw, Globe, AlertCircle, ChevronRight, BarChart3, Activity } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { Search, Star, TrendingUp, TrendingDown, Plus, X, RefreshCw, Globe, AlertCircle, BarChart3, Activity, Calendar } from 'lucide-react'
+import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface Stock {
   symbol: string
@@ -94,51 +94,81 @@ const stockDatabase: Stock[] = [
 ]
 
 // 时间周期类型
-type TimePeriod = '1D' | '5D' | '1M' | '3M' | '1Y'
+type TimePeriod = '1D' | '5D' | '1M' | '3M' | '1Y' | 'custom'
 
-// 生成模拟K线数据（支持不同时间周期）
-const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
+// 格式化日期为 YYYY-MM-DD
+const formatDateInput = (date: Date): string => {
+  return date.toISOString().split('T')[0]
+}
+
+// 生成模拟K线数据（支持不同时间周期和自定义日期范围）
+const generateChartData = (
+  basePrice: number,
+  period: TimePeriod = '1M',
+  customStartDate?: Date,
+  customEndDate?: Date
+) => {
   const data = []
   let price = basePrice
-  const now = new Date()
 
-  // 根据周期决定数据点数量和时间间隔
+  // 结束日期固定为当前时间 2026-02-21
+  const now = customEndDate || new Date('2026-02-21T15:30:00')
+  let startDate: Date
+
+  // 根据周期计算开始日期
+  if (period === 'custom' && customStartDate) {
+    startDate = customStartDate
+  } else {
+    startDate = new Date(now)
+    switch (period) {
+      case '1D':
+        startDate.setDate(startDate.getDate() - 1)
+        break
+      case '5D':
+        startDate.setDate(startDate.getDate() - 5)
+        break
+      case '1M':
+        startDate.setMonth(startDate.getMonth() - 1)
+        break
+      case '3M':
+        startDate.setMonth(startDate.getMonth() - 3)
+        break
+      case '1Y':
+        startDate.setFullYear(startDate.getFullYear() - 1)
+        break
+      default:
+        startDate.setMonth(startDate.getMonth() - 1)
+    }
+  }
+
+  // 计算日期间隔和数据点数量
+  const totalDays = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
   let dataPoints: number
   let intervalMinutes: number
 
-  switch (period) {
-    case '1D':
-      dataPoints = 48
-      intervalMinutes = 30
-      price = basePrice * 0.995
-      break
-    case '5D':
-      dataPoints = 60
-      intervalMinutes = 120
-      price = basePrice * 0.98
-      break
-    case '1M':
-      dataPoints = 30
-      intervalMinutes = 24 * 60
-      price = basePrice * 0.95
-      break
-    case '3M':
-      dataPoints = 90
-      intervalMinutes = 24 * 60
-      price = basePrice * 0.90
-      break
-    case '1Y':
-      dataPoints = 250
-      intervalMinutes = 24 * 60
-      price = basePrice * 0.75
-      break
-    default:
-      dataPoints = 30
-      intervalMinutes = 24 * 60
-      price = basePrice * 0.95
+  if (totalDays <= 1) {
+    dataPoints = 48
+    intervalMinutes = 30
+    price = basePrice * 0.995
+  } else if (totalDays <= 5) {
+    dataPoints = totalDays * 12
+    intervalMinutes = 120
+    price = basePrice * 0.98
+  } else if (totalDays <= 60) {
+    dataPoints = totalDays
+    intervalMinutes = 24 * 60
+    price = basePrice * 0.95
+  } else if (totalDays <= 180) {
+    dataPoints = totalDays
+    intervalMinutes = 24 * 60
+    price = basePrice * 0.90
+  } else {
+    dataPoints = Math.min(totalDays, 365)
+    intervalMinutes = 24 * 60
+    price = basePrice * 0.75
   }
 
-  const volatility = period === '1D' ? 0.005 : period === '5D' ? 0.01 : period === '1M' ? 0.02 : period === '3M' ? 0.025 : 0.03
+  const volatility = totalDays <= 1 ? 0.005 : totalDays <= 5 ? 0.01 : totalDays <= 60 ? 0.02 : totalDays <= 180 ? 0.025 : 0.03
   let lastYear: number | null = null
 
   for (let i = dataPoints; i >= 0; i--) {
@@ -149,22 +179,23 @@ const generateChartData = (basePrice: number, period: TimePeriod = '1M') => {
     const date = new Date(now)
     date.setMinutes(date.getMinutes() - i * intervalMinutes)
 
-    // 根据周期格式化日期标签 - 在年份变化或首个数据点显示年份
+    // 确保不超出日期范围
+    if (date < startDate) continue
+
     let dateLabel: string
     const currentYear = date.getFullYear()
-    const isFirstPoint = i === dataPoints
+    const isFirstPoint = data.length === 0
     const yearChanged = lastYear !== null && lastYear !== currentYear
 
-    if (period === '1D') {
+    if (totalDays <= 1) {
       dateLabel = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-    } else if (period === '5D') {
+    } else if (totalDays <= 5) {
       if (isFirstPoint) {
         dateLabel = `${currentYear}/${date.getMonth() + 1}/${date.getDate()}`
       } else {
         dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
       }
     } else {
-      // 1M, 3M, 1Y - 在首个数据点和年份变化时显示年份
       if (isFirstPoint || yearChanged) {
         dateLabel = `${currentYear}/${date.getMonth() + 1}/${date.getDate()}`
       } else {
@@ -244,7 +275,10 @@ export default function StockSearch() {
   const [isSearching, setIsSearching] = useState(false)
   const [chartData, setChartData] = useState<any[]>([])
   const [chartPeriod, setChartPeriod] = useState<TimePeriod>('1M')
-  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date())
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date('2026-02-21T15:30:00'))
+  const [customStartDate, setCustomStartDate] = useState<string>('2026-01-21')
+  const [customEndDate, setCustomEndDate] = useState<string>('2026-02-21')
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   // 加载自选股
   useEffect(() => {
@@ -261,9 +295,18 @@ export default function StockSearch() {
   // 更新图表数据
   useEffect(() => {
     if (selectedStock) {
-      setChartData(generateChartData(selectedStock.price, chartPeriod))
+      if (chartPeriod === 'custom') {
+        setChartData(generateChartData(
+          selectedStock.price,
+          'custom',
+          new Date(customStartDate),
+          new Date(customEndDate + 'T23:59:59')
+        ))
+      } else {
+        setChartData(generateChartData(selectedStock.price, chartPeriod))
+      }
     }
-  }, [selectedStock, chartPeriod])
+  }, [selectedStock, chartPeriod, customStartDate, customEndDate])
 
   // 每10分钟自动刷新行情数据
   useEffect(() => {
@@ -684,21 +727,58 @@ export default function StockSearch() {
                   </h3>
                   {/* 时间周期切换 */}
                   <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                    {(['1D', '5D', '1M', '3M', '1Y'] as TimePeriod[]).map((period) => (
+                    {(['1D', '5D', '1M', '3M', '1Y', 'custom'] as TimePeriod[]).map((period) => (
                       <button
                         key={period}
-                        onClick={() => setChartPeriod(period)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        onClick={() => {
+                          setChartPeriod(period)
+                          if (period === 'custom') {
+                            setShowDatePicker(true)
+                          } else {
+                            setShowDatePicker(false)
+                          }
+                        }}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
                           chartPeriod === period
                             ? 'bg-white text-blue-600 shadow-sm'
                             : 'text-gray-600 hover:text-gray-800'
                         }`}
                       >
-                        {period === '1D' ? '1日' : period === '5D' ? '5日' : period === '1M' ? '1月' : period === '3M' ? '3月' : '1年'}
+                        {period === '1D' ? '1日' : period === '5D' ? '5日' : period === '1M' ? '1月' : period === '3M' ? '3月' : period === '1Y' ? '1年' : '自定义'}
                       </button>
                     ))}
                   </div>
                 </div>
+
+                {/* 自定义日期选择器 */}
+                {showDatePicker && (
+                  <div className="flex items-center gap-3 mb-3 p-3 bg-blue-50 rounded-lg">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">开始:</label>
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        max={customEndDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        className="px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">结束:</label>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        min={customStartDate}
+                        max="2026-02-21"
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        className="px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500">（数据截止: 2026-02-21）</span>
+                  </div>
+                )}
+
                 {/* 显示时间范围 */}
                 <div className="text-sm text-gray-500 mb-3">
                   {getChartDateRange(chartData, chartPeriod)}
@@ -717,7 +797,7 @@ export default function StockSearch() {
                         tick={{ fontSize: 10, fill: '#6b7280' }}
                         tickLine={false}
                         axisLine={{ stroke: '#e5e7eb' }}
-                        interval={chartPeriod === '1Y' ? 30 : chartPeriod === '3M' ? 10 : chartPeriod === '1D' ? 6 : 'preserveStartEnd'}
+                        interval={chartPeriod === '1Y' || chartPeriod === 'custom' ? 30 : chartPeriod === '3M' ? 10 : chartPeriod === '1D' ? 6 : 'preserveStartEnd'}
                       />
                       <YAxis
                         domain={['auto', 'auto']}
