@@ -1,0 +1,15 @@
+# Render 部署配置文件
+# 量化投资可视化平台
+
+services:
+  - type: web
+    name: quant-platform
+    runtime: node
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /api/health
