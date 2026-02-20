@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   PieChart,
   Pie,
@@ -10,54 +10,530 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from 'recharts'
-import { Plus, Settings, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
+import {
+  Plus, Settings, TrendingUp, TrendingDown, Wallet, Search,
+  ArrowUpDown, Edit2, X, Check, RefreshCw, ChevronDown,
+  PieChartIcon, BarChart3, Target, AlertCircle, Save
+} from 'lucide-react'
 
-const portfolioData = [
-  { name: '寒武纪', code: '688256', shares: 200, cost: 380, current: 456.78, weight: 28 },
-  { name: '宁德时代', code: '300750', shares: 300, cost: 175, current: 198.45, weight: 18 },
-  { name: '比亚迪', code: '002594', shares: 100, cost: 285, current: 312.80, weight: 12 },
-  { name: '科大讯飞', code: '002230', shares: 400, cost: 65, current: 78.56, weight: 10 },
-  { name: '拓普集团', code: '601689', shares: 350, cost: 75, current: 89.45, weight: 10 },
-  { name: '海光信息', code: '688041', shares: 150, cost: 98, current: 123.45, weight: 12 },
-  { name: '现金', code: '-', shares: 0, cost: 0, current: 80000, weight: 10 },
+// 股票搜索数据库
+const stockSearchDatabase: Record<string, { name: string; price: number; sector: string }> = {
+  '600519': { name: '贵州茅台', price: 1720, sector: '消费' },
+  '300750': { name: '宁德时代', price: 198.45, sector: '新能源' },
+  '002594': { name: '比亚迪', price: 312.80, sector: '新能源' },
+  '688256': { name: '寒武纪', price: 456.78, sector: 'AI芯片' },
+  '002230': { name: '科大讯飞', price: 78.56, sector: 'AI应用' },
+  '688041': { name: '海光信息', price: 123.45, sector: 'AI芯片' },
+  '601318': { name: '中国平安', price: 45.8, sector: '金融' },
+  '600036': { name: '招商银行', price: 35.5, sector: '金融' },
+  '000858': { name: '五粮液', price: 158, sector: '消费' },
+  '300059': { name: '东方财富', price: 16.8, sector: '金融' },
+  '518880': { name: '黄金ETF', price: 5.85, sector: 'ETF' },
+  '510300': { name: '沪深300ETF', price: 4.05, sector: 'ETF' },
+  '512480': { name: '半导体ETF', price: 1.42, sector: 'ETF' },
+  '601689': { name: '拓普集团', price: 89.45, sector: '人形机器人' },
+  '688111': { name: '金山办公', price: 345, sector: 'AI应用' },
+  '300418': { name: '昆仑万维', price: 58.5, sector: 'AI应用' },
+  '000333': { name: '美的集团', price: 65.2, sector: '消费' },
+  '601012': { name: '隆基绿能', price: 18.5, sector: '新能源' },
+  '300124': { name: '汇川技术', price: 68.9, sector: '人形机器人' },
+  '688981': { name: '中芯国际', price: 75.8, sector: 'AI芯片' },
+  '002475': { name: '立讯精密', price: 32.5, sector: '消费电子' },
+  '300760': { name: '迈瑞医疗', price: 285, sector: '医疗' },
+  '603259': { name: '药明康德', price: 48.6, sector: '医疗' },
+  '000001': { name: '平安银行', price: 11.2, sector: '金融' },
+  '600900': { name: '长江电力', price: 28.9, sector: '公用事业' },
+}
+
+// 组合数据库
+interface Stock {
+  name: string
+  code: string
+  shares: number
+  cost: number
+  current: number
+  sector: string
+}
+
+interface Portfolio {
+  id: string
+  name: string
+  createDate: string
+  totalAsset: number
+  todayPnl: number
+  todayPnlPercent: number
+  totalPnl: number
+  totalPnlPercent: number
+  cash: number
+  stocks: Stock[]
+}
+
+const portfoliosDatabase: Portfolio[] = [
+  {
+    id: '1',
+    name: '成长组合',
+    createDate: '2025-06-15',
+    totalAsset: 2567890,
+    todayPnl: 45678,
+    todayPnlPercent: 1.81,
+    totalPnl: 356789,
+    totalPnlPercent: 16.13,
+    cash: 80000,
+    stocks: [
+      { name: '寒武纪', code: '688256', shares: 200, cost: 380, current: 456.78, sector: 'AI芯片' },
+      { name: '宁德时代', code: '300750', shares: 300, cost: 175, current: 198.45, sector: '新能源' },
+      { name: '比亚迪', code: '002594', shares: 100, cost: 285, current: 312.80, sector: '新能源' },
+      { name: '科大讯飞', code: '002230', shares: 400, cost: 65, current: 78.56, sector: 'AI应用' },
+      { name: '拓普集团', code: '601689', shares: 350, cost: 75, current: 89.45, sector: '人形机器人' },
+      { name: '海光信息', code: '688041', shares: 150, cost: 98, current: 123.45, sector: 'AI芯片' },
+    ]
+  },
+  {
+    id: '2',
+    name: '价值组合',
+    createDate: '2025-03-20',
+    totalAsset: 1856000,
+    todayPnl: -12350,
+    todayPnlPercent: -0.66,
+    totalPnl: 156000,
+    totalPnlPercent: 9.18,
+    cash: 200000,
+    stocks: [
+      { name: '贵州茅台', code: '600519', shares: 5, cost: 1650, current: 1720, sector: '消费' },
+      { name: '招商银行', code: '600036', shares: 2000, cost: 32, current: 35.5, sector: '金融' },
+      { name: '中国平安', code: '601318', shares: 1500, cost: 42, current: 45.8, sector: '金融' },
+      { name: '五粮液', code: '000858', shares: 300, cost: 145, current: 158, sector: '消费' },
+      { name: '美的集团', code: '000333', shares: 500, cost: 58, current: 65.2, sector: '消费' },
+    ]
+  },
+  {
+    id: '3',
+    name: 'AI主题',
+    createDate: '2026-01-10',
+    totalAsset: 890000,
+    todayPnl: 28900,
+    todayPnlPercent: 3.35,
+    totalPnl: 190000,
+    totalPnlPercent: 27.14,
+    cash: 50000,
+    stocks: [
+      { name: '寒武纪', code: '688256', shares: 100, cost: 350, current: 456.78, sector: 'AI芯片' },
+      { name: '科大讯飞', code: '002230', shares: 800, cost: 55, current: 78.56, sector: 'AI应用' },
+      { name: '金山办公', code: '688111', shares: 200, cost: 280, current: 345, sector: 'AI应用' },
+      { name: '昆仑万维', code: '300418', shares: 600, cost: 42, current: 58.5, sector: 'AI应用' },
+    ]
+  }
 ]
 
-const allocationData = [
-  { name: 'AI芯片', value: 40, color: '#3b82f6' },
-  { name: '新能源', value: 30, color: '#10b981' },
-  { name: '人形机器人', value: 10, color: '#f59e0b' },
-  { name: 'AI应用', value: 10, color: '#8b5cf6' },
-  { name: '现金', value: 10, color: '#9ca3af' },
-]
+// 生成净值走势数据
+const generatePerformanceData = (days: number, baseReturn: number, volatility: number) => {
+  const data = []
+  let portfolioValue = 100
+  let benchmarkValue = 100
 
-const performanceData = Array.from({ length: 30 }, (_, i) => ({
-  day: i + 1,
-  value: 100 + Math.random() * 15 - 5 + i * 0.2,
-  benchmark: 100 + Math.random() * 10 - 5 + i * 0.1,
-}))
+  for (let i = 0; i <= days; i++) {
+    const date = new Date()
+    date.setDate(date.getDate() - (days - i))
 
-const summaryData = [
-  { label: '总资产', value: '¥2,567,890', change: 15.67 },
-  { label: '今日盈亏', value: '¥45,678', change: 3.45 },
-  { label: '持仓盈亏', value: '¥356,789', change: 18.92 },
-  { label: '可用现金', value: '¥80,000', change: 0 },
-]
+    portfolioValue *= (1 + (Math.random() - 0.5) * volatility * 2 + baseReturn / days)
+    benchmarkValue *= (1 + (Math.random() - 0.5) * volatility * 1.5 + baseReturn / days * 0.7)
+
+    data.push({
+      date: `${date.getMonth() + 1}/${date.getDate()}`,
+      portfolio: Math.round(portfolioValue * 100) / 100,
+      benchmark: Math.round(benchmarkValue * 100) / 100,
+    })
+  }
+  return data
+}
+
+// 颜色映射
+const sectorColors: Record<string, string> = {
+  'AI芯片': '#3b82f6',
+  '新能源': '#10b981',
+  '人形机器人': '#f59e0b',
+  'AI应用': '#8b5cf6',
+  '消费': '#ec4899',
+  '金融': '#06b6d4',
+  '现金': '#9ca3af',
+  'ETF': '#84cc16',
+  '消费电子': '#f97316',
+  '医疗': '#14b8a6',
+  '公用事业': '#a855f7',
+}
 
 export default function PortfolioManagement() {
+  // 状态管理
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState('1')
   const [selectedView, setSelectedView] = useState<'list' | 'chart'>('list')
+  const [sortField, setSortField] = useState<'profit' | 'weight' | 'name'>('weight')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [timePeriod, setTimePeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d')
+  const [showNewPortfolioModal, setShowNewPortfolioModal] = useState(false)
+  const [showRebalanceModal, setShowRebalanceModal] = useState(false)
+  const [showStockDetail, setShowStockDetail] = useState<Stock | null>(null)
+  const [showAddStockModal, setShowAddStockModal] = useState(false)
+  const [newPortfolioName, setNewPortfolioName] = useState('')
+  const [newPortfolioCash, setNewPortfolioCash] = useState(100000)
+  const [portfolios, setPortfolios] = useState(portfoliosDatabase)
+  const [showPortfolioDropdown, setShowPortfolioDropdown] = useState(false)
+
+  // 资金编辑状态
+  const [isEditingCash, setIsEditingCash] = useState(false)
+  const [editCashValue, setEditCashValue] = useState(0)
+
+  // 添加股票状态
+  const [stockSearchQuery, setStockSearchQuery] = useState('')
+  const [addStockShares, setAddStockShares] = useState(100)
+  const [selectedStockToAdd, setSelectedStockToAdd] = useState<{ code: string; name: string; price: number; sector: string } | null>(null)
+
+  // 当前选中的组合
+  const currentPortfolio = useMemo(() => {
+    return portfolios.find(p => p.id === selectedPortfolioId) || portfolios[0]
+  }, [portfolios, selectedPortfolioId])
+
+  // 股票搜索结果
+  const stockSearchResults = useMemo(() => {
+    if (!stockSearchQuery.trim()) return []
+
+    return Object.entries(stockSearchDatabase)
+      .filter(([code, info]) =>
+        code.includes(stockSearchQuery) ||
+        info.name.includes(stockSearchQuery)
+      )
+      .map(([code, info]) => ({ code, ...info }))
+      .slice(0, 8)
+  }, [stockSearchQuery])
+
+  // 计算持仓数据
+  const holdingsData = useMemo(() => {
+    if (!currentPortfolio) return { stocks: [], cashWeight: 0 }
+
+    const totalValue = currentPortfolio.stocks.reduce((sum, s) => sum + s.current * s.shares, 0) + currentPortfolio.cash
+
+    let data = currentPortfolio.stocks.map(stock => {
+      const marketValue = stock.current * stock.shares
+      const costValue = stock.cost * stock.shares
+      const profit = marketValue - costValue
+      const profitPercent = (profit / costValue) * 100
+      const weight = (marketValue / totalValue) * 100
+
+      return {
+        ...stock,
+        marketValue,
+        costValue,
+        profit,
+        profitPercent,
+        weight,
+      }
+    })
+
+    const cashWeight = (currentPortfolio.cash / totalValue) * 100
+
+    if (searchQuery) {
+      data = data.filter(s =>
+        s.name.includes(searchQuery) ||
+        s.code.includes(searchQuery) ||
+        s.sector.includes(searchQuery)
+      )
+    }
+
+    data.sort((a, b) => {
+      let compare = 0
+      switch (sortField) {
+        case 'profit':
+          compare = a.profitPercent - b.profitPercent
+          break
+        case 'weight':
+          compare = a.weight - b.weight
+          break
+        case 'name':
+          compare = a.name.localeCompare(b.name)
+          break
+      }
+      return sortOrder === 'desc' ? -compare : compare
+    })
+
+    return { stocks: data, cashWeight }
+  }, [currentPortfolio, searchQuery, sortField, sortOrder])
+
+  // 资产配置数据
+  const allocationData = useMemo(() => {
+    if (!currentPortfolio) return []
+
+    const sectorMap: Record<string, number> = {}
+    const totalValue = currentPortfolio.stocks.reduce((sum, s) => sum + s.current * s.shares, 0) + currentPortfolio.cash
+
+    currentPortfolio.stocks.forEach(stock => {
+      const value = stock.current * stock.shares
+      sectorMap[stock.sector] = (sectorMap[stock.sector] || 0) + value
+    })
+
+    const data = Object.entries(sectorMap).map(([name, value]) => ({
+      name,
+      value: Math.round((value / totalValue) * 100),
+      color: sectorColors[name] || '#6b7280',
+      amount: value,
+    }))
+
+    data.push({
+      name: '现金',
+      value: Math.round((currentPortfolio.cash / totalValue) * 100),
+      color: sectorColors['现金'],
+      amount: currentPortfolio.cash,
+    })
+
+    return data.sort((a, b) => b.value - a.value)
+  }, [currentPortfolio])
+
+  // 净值走势数据
+  const performanceData = useMemo(() => {
+    const days = timePeriod === '7d' ? 7 : timePeriod === '30d' ? 30 : timePeriod === '90d' ? 90 : 365
+    const baseReturn = currentPortfolio?.totalPnlPercent || 10
+    return generatePerformanceData(days, baseReturn / 100, 0.02)
+  }, [timePeriod, currentPortfolio])
+
+  // 处理排序
+  const handleSort = (field: 'profit' | 'weight' | 'name') => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
+
+  // 创建新组合
+  const handleCreatePortfolio = () => {
+    if (!newPortfolioName.trim()) return
+
+    const newPortfolio: Portfolio = {
+      id: String(Date.now()),
+      name: newPortfolioName,
+      createDate: new Date().toISOString().split('T')[0],
+      totalAsset: newPortfolioCash,
+      todayPnl: 0,
+      todayPnlPercent: 0,
+      totalPnl: 0,
+      totalPnlPercent: 0,
+      cash: newPortfolioCash,
+      stocks: []
+    }
+
+    setPortfolios(prev => [...prev, newPortfolio])
+    setSelectedPortfolioId(newPortfolio.id)
+    setNewPortfolioName('')
+    setNewPortfolioCash(100000)
+    setShowNewPortfolioModal(false)
+  }
+
+  // 编辑资金
+  const handleStartEditCash = () => {
+    setEditCashValue(currentPortfolio?.cash || 0)
+    setIsEditingCash(true)
+  }
+
+  const handleSaveCash = () => {
+    if (editCashValue < 0) return
+
+    setPortfolios(prev => prev.map(p => {
+      if (p.id === selectedPortfolioId) {
+        const stocksValue = p.stocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+        return {
+          ...p,
+          cash: editCashValue,
+          totalAsset: stocksValue + editCashValue
+        }
+      }
+      return p
+    }))
+    setIsEditingCash(false)
+  }
+
+  // 添加股票到组合
+  const handleAddStock = () => {
+    if (!selectedStockToAdd || addStockShares <= 0) return
+
+    const stockCost = selectedStockToAdd.price * addStockShares
+
+    setPortfolios(prev => prev.map(p => {
+      if (p.id === selectedPortfolioId) {
+        // 检查现金是否足够
+        if (p.cash < stockCost) {
+          alert(`现金不足！需要 ¥${stockCost.toLocaleString()}，可用 ¥${p.cash.toLocaleString()}`)
+          return p
+        }
+
+        // 检查是否已持有该股票
+        const existingStock = p.stocks.find(s => s.code === selectedStockToAdd.code)
+        let newStocks: Stock[]
+
+        if (existingStock) {
+          // 加仓 - 计算新的平均成本
+          newStocks = p.stocks.map(s => {
+            if (s.code === selectedStockToAdd.code) {
+              const totalShares = s.shares + addStockShares
+              const newCost = (s.cost * s.shares + selectedStockToAdd.price * addStockShares) / totalShares
+              return {
+                ...s,
+                shares: totalShares,
+                cost: Math.round(newCost * 100) / 100
+              }
+            }
+            return s
+          })
+        } else {
+          // 新建仓
+          newStocks = [...p.stocks, {
+            name: selectedStockToAdd.name,
+            code: selectedStockToAdd.code,
+            shares: addStockShares,
+            cost: selectedStockToAdd.price,
+            current: selectedStockToAdd.price,
+            sector: selectedStockToAdd.sector
+          }]
+        }
+
+        const newCash = p.cash - stockCost
+        const stocksValue = newStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+
+        return {
+          ...p,
+          stocks: newStocks,
+          cash: newCash,
+          totalAsset: stocksValue + newCash
+        }
+      }
+      return p
+    }))
+
+    setShowAddStockModal(false)
+    setSelectedStockToAdd(null)
+    setStockSearchQuery('')
+    setAddStockShares(100)
+  }
+
+  // 刷新数据
+  const handleRefresh = () => {
+    setPortfolios(prev => prev.map(portfolio => {
+      const updatedStocks = portfolio.stocks.map(stock => ({
+        ...stock,
+        current: Math.round(stock.current * (1 + (Math.random() - 0.5) * 0.02) * 100) / 100
+      }))
+      const stocksValue = updatedStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+      const totalAsset = stocksValue + portfolio.cash
+      const costValue = updatedStocks.reduce((sum, s) => sum + s.cost * s.shares, 0)
+      const totalPnl = stocksValue - costValue
+      const totalPnlPercent = costValue > 0 ? (totalPnl / costValue) * 100 : 0
+
+      return {
+        ...portfolio,
+        stocks: updatedStocks,
+        totalAsset,
+        totalPnl: Math.round(totalPnl),
+        totalPnlPercent: Math.round(totalPnlPercent * 100) / 100,
+        todayPnl: Math.round((Math.random() - 0.3) * 50000),
+        todayPnlPercent: Math.round((Math.random() - 0.3) * 5 * 100) / 100,
+      }
+    }))
+  }
+
+  const summaryData = currentPortfolio ? [
+    { label: '总资产', value: `¥${currentPortfolio.totalAsset.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: Wallet },
+    { label: '今日盈亏', value: `¥${currentPortfolio.todayPnl.toLocaleString()}`, change: currentPortfolio.todayPnlPercent, icon: TrendingUp },
+    { label: '持仓盈亏', value: `¥${currentPortfolio.totalPnl.toLocaleString()}`, change: currentPortfolio.totalPnlPercent, icon: BarChart3 },
+    { label: '可用现金', value: `¥${currentPortfolio.cash.toLocaleString()}`, change: 0, icon: Target, editable: true },
+  ] : []
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">组合管理</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-800">组合管理</h1>
+          {/* 组合选择下拉 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowPortfolioDropdown(!showPortfolioDropdown)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <PieChartIcon className="w-4 h-4" />
+              {currentPortfolio?.name}
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            {showPortfolioDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                {portfolios.map(portfolio => (
+                  <div
+                    key={portfolio.id}
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer ${
+                      portfolio.id === selectedPortfolioId ? 'bg-blue-50' : ''
+                    }`}
+                    onClick={() => {
+                      setSelectedPortfolioId(portfolio.id)
+                      setShowPortfolioDropdown(false)
+                    }}
+                  >
+                    <div>
+                      <div className="font-medium text-gray-800">{portfolio.name}</div>
+                      <div className="text-xs text-gray-500">
+                        ¥{portfolio.totalAsset.toLocaleString()} ·
+                        <span className={portfolio.totalPnlPercent >= 0 ? 'text-red-500' : 'text-green-500'}>
+                          {portfolio.totalPnlPercent >= 0 ? '+' : ''}{portfolio.totalPnlPercent}%
+                        </span>
+                      </div>
+                    </div>
+                    {portfolio.id === selectedPortfolioId && (
+                      <Check className="w-4 h-4 text-blue-500" />
+                    )}
+                  </div>
+                ))}
+                <div className="border-t border-gray-100">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowNewPortfolioModal(true)
+                      setShowPortfolioDropdown(false)
+                    }}
+                    className="flex items-center gap-2 w-full px-4 py-3 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    新建组合
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            刷新
+          </button>
+          <button
+            onClick={() => setShowAddStockModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            添加股票
+          </button>
+          <button
+            onClick={() => setShowRebalanceModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
             <Settings className="w-4 h-4" />
             调仓
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+          <button
+            onClick={() => setShowNewPortfolioModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
             <Plus className="w-4 h-4" />
             新建组合
           </button>
@@ -67,10 +543,21 @@ export default function PortfolioManagement() {
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">
         {summaryData.map((item) => (
-          <div key={item.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-              <Wallet className="w-4 h-4" />
-              {item.label}
+          <div key={item.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </div>
+              {item.editable && (
+                <button
+                  onClick={handleStartEditCash}
+                  className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                  title="编辑资金"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <div className="text-2xl font-bold text-gray-800">{item.value}</div>
             {item.change !== 0 && (
@@ -89,93 +576,243 @@ export default function PortfolioManagement() {
         <div className="col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-800">持仓明细</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedView('list')}
-                className={`px-3 py-1 text-sm rounded ${selectedView === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
-              >
-                列表
-              </button>
-              <button
-                onClick={() => setSelectedView('chart')}
-                className={`px-3 py-1 text-sm rounded ${selectedView === 'chart' ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
-              >
-                图表
-              </button>
+            <div className="flex items-center gap-3">
+              {/* 搜索框 */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="搜索股票..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
+                />
+              </div>
+              {/* 排序按钮 */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleSort('profit')}
+                  className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${
+                    sortField === 'profit' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  盈亏 <ArrowUpDown className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleSort('weight')}
+                  className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${
+                    sortField === 'weight' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  占比 <ArrowUpDown className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => handleSort('name')}
+                  className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${
+                    sortField === 'name' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  名称 <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </div>
+              {/* 视图切换 */}
+              <div className="flex gap-1 border-l border-gray-200 pl-3">
+                <button
+                  onClick={() => setSelectedView('list')}
+                  className={`px-3 py-1 text-sm rounded ${selectedView === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
+                >
+                  列表
+                </button>
+                <button
+                  onClick={() => setSelectedView('chart')}
+                  className={`px-3 py-1 text-sm rounded ${selectedView === 'chart' ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
+                >
+                  图表
+                </button>
+              </div>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">股票名称</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">代码</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">持股</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">成本价</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">现价</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">盈亏</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">占比</th>
-                </tr>
-              </thead>
-              <tbody>
-                {portfolioData.map((stock) => {
-                  const profit = stock.code !== '-' ? (stock.current - stock.cost) * stock.shares : 0
-                  const profitPercent = stock.code !== '-' ? ((stock.current - stock.cost) / stock.cost * 100) : 0
-                  return (
-                    <tr key={stock.code} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium">{stock.name}</td>
-                      <td className="py-3 px-4 text-gray-500">{stock.code}</td>
-                      <td className="py-3 px-4 text-right">{stock.shares || '-'}</td>
-                      <td className="py-3 px-4 text-right">{stock.cost ? `¥${stock.cost.toFixed(2)}` : '-'}</td>
-                      <td className="py-3 px-4 text-right">{stock.code !== '-' ? `¥${stock.current.toFixed(2)}` : `¥${stock.current.toLocaleString()}`}</td>
-                      <td className="py-3 px-4 text-right">
-                        {stock.code !== '-' ? (
-                          <div className={profit >= 0 ? 'text-red-500' : 'text-green-500'}>
-                            <div>{profit >= 0 ? '+' : ''}{profit.toFixed(0)}</div>
-                            <div className="text-xs">{profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(2)}%</div>
-                          </div>
-                        ) : '-'}
+
+          {selectedView === 'list' ? (
+            <div className="overflow-x-auto max-h-96">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">股票名称</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">代码</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">板块</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">持股</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">现价</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">市值</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">盈亏</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">占比</th>
+                    <th className="text-center py-3 px-4 font-medium text-gray-600">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdingsData.stocks.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-12 text-gray-500">
+                        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        暂无持仓，点击"添加股票"开始建仓
                       </td>
-                      <td className="py-3 px-4 text-right">{stock.weight}%</td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    holdingsData.stocks.map((stock) => (
+                      <tr
+                        key={stock.code}
+                        className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                        onClick={() => setShowStockDetail(stock)}
+                      >
+                        <td className="py-3 px-4 font-medium">{stock.name}</td>
+                        <td className="py-3 px-4 text-gray-500">{stock.code}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className="px-2 py-0.5 rounded text-xs"
+                            style={{
+                              backgroundColor: `${sectorColors[stock.sector] || '#6b7280'}20`,
+                              color: sectorColors[stock.sector] || '#6b7280'
+                            }}
+                          >
+                            {stock.sector}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">{stock.shares}</td>
+                        <td className="py-3 px-4 text-right">¥{stock.current.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right">¥{stock.marketValue.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className={stock.profit >= 0 ? 'text-red-500' : 'text-green-500'}>
+                            <div>{stock.profit >= 0 ? '+' : ''}¥{stock.profit.toFixed(0)}</div>
+                            <div className="text-xs">{stock.profitPercent >= 0 ? '+' : ''}{stock.profitPercent.toFixed(2)}%</div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 rounded-full"
+                                style={{ width: `${Math.min(stock.weight, 100)}%` }}
+                              />
+                            </div>
+                            <span className="w-12 text-right">{stock.weight.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowStockDetail(stock)
+                            }}
+                            className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                  {/* 现金行 */}
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <td className="py-3 px-4 font-medium text-gray-500">现金</td>
+                    <td className="py-3 px-4 text-gray-400">-</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-600">现金</span>
+                    </td>
+                    <td className="py-3 px-4 text-right">-</td>
+                    <td className="py-3 px-4 text-right">-</td>
+                    <td className="py-3 px-4 text-right">¥{currentPortfolio?.cash.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right text-gray-400">-</td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gray-400 rounded-full"
+                            style={{ width: `${holdingsData.cashWeight}%` }}
+                          />
+                        </div>
+                        <span className="w-12 text-right">{holdingsData.cashWeight?.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={handleStartEditCash}
+                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                        title="编辑资金"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={holdingsData.stocks.map(s => ({ name: s.name, value: s.marketValue }))}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                    isAnimationActive={false}
+                  >
+                    {holdingsData.stocks.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={sectorColors[entry.sector] || '#6b7280'} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`¥${value.toLocaleString()}`, '市值']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Allocation Chart */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">资产配置</h2>
-          <div className="h-64">
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={allocationData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  innerRadius={50}
+                  outerRadius={75}
+                  paddingAngle={3}
                   dataKey="value"
+                  isAnimationActive={false}
                 >
                   {allocationData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  formatter={(value: number, name: string, props: { payload?: { amount?: number } }) => [
+                    `${value}% (¥${(props.payload?.amount || 0).toLocaleString()})`,
+                    name
+                  ]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
           <div className="space-y-2 mt-4">
             {allocationData.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-sm">
+              <div
+                key={item.name}
+                className="flex items-center justify-between text-sm p-2 rounded hover:bg-gray-50 cursor-pointer transition-colors"
+              >
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
                   <span className="text-gray-600">{item.name}</span>
                 </div>
-                <span className="font-medium">{item.value}%</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 text-xs">¥{item.amount.toLocaleString()}</span>
+                  <span className="font-medium w-10 text-right">{item.value}%</span>
+                </div>
               </div>
             ))}
           </div>
@@ -184,12 +821,29 @@ export default function PortfolioManagement() {
 
       {/* Performance Chart */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">组合净值走势</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">组合净值走势</h2>
+          <div className="flex gap-2">
+            {(['7d', '30d', '90d', '1y'] as const).map(period => (
+              <button
+                key={period}
+                onClick={() => setTimePeriod(period)}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  timePeriod === period
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {period === '7d' ? '7天' : period === '30d' ? '30天' : period === '90d' ? '90天' : '1年'}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={performanceData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
               <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" domain={['auto', 'auto']} />
               <Tooltip
                 contentStyle={{
@@ -197,13 +851,380 @@ export default function PortfolioManagement() {
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                 }}
+                formatter={(value: number) => [value.toFixed(2), '']}
               />
-              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} dot={false} name="组合" />
-              <Line type="monotone" dataKey="benchmark" stroke="#9ca3af" strokeWidth={2} dot={false} name="基准" />
+              <Legend />
+              <Line type="monotone" dataKey="portfolio" stroke="#3b82f6" strokeWidth={2} dot={false} name="组合净值" isAnimationActive={false} />
+              <Line type="monotone" dataKey="benchmark" stroke="#9ca3af" strokeWidth={2} dot={false} name="沪深300" isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* 新建组合弹窗 */}
+      {showNewPortfolioModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-96 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">新建组合</h3>
+              <button onClick={() => setShowNewPortfolioModal(false)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">组合名称</label>
+                <input
+                  type="text"
+                  value={newPortfolioName}
+                  onChange={(e) => setNewPortfolioName(e.target.value)}
+                  placeholder="如：科技成长组合"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">初始资金 (元)</label>
+                <input
+                  type="number"
+                  value={newPortfolioCash}
+                  onChange={(e) => setNewPortfolioCash(Number(e.target.value))}
+                  placeholder="100000"
+                  min={0}
+                  step={10000}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowNewPortfolioModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleCreatePortfolio}
+                  disabled={!newPortfolioName.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  创建
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑资金弹窗 */}
+      {isEditingCash && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-96 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">编辑可用资金</h3>
+              <button onClick={() => setIsEditingCash(false)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">当前资金</label>
+                <div className="text-2xl font-bold text-gray-400 mb-3">
+                  ¥{currentPortfolio?.cash.toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">新资金金额 (元)</label>
+                <input
+                  type="number"
+                  value={editCashValue}
+                  onChange={(e) => setEditCashValue(Number(e.target.value))}
+                  min={0}
+                  step={10000}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsEditingCash(false)}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSaveCash}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 添加股票弹窗 */}
+      {showAddStockModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-[500px] shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">添加股票 - {currentPortfolio?.name}</h3>
+              <button onClick={() => {
+                setShowAddStockModal(false)
+                setSelectedStockToAdd(null)
+                setStockSearchQuery('')
+              }}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="text-sm text-blue-700">可用资金</div>
+                <div className="text-xl font-bold text-blue-800">¥{currentPortfolio?.cash.toLocaleString()}</div>
+              </div>
+
+              {/* 股票搜索 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">搜索股票 (代码或名称)</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={stockSearchQuery}
+                    onChange={(e) => setStockSearchQuery(e.target.value)}
+                    placeholder="输入股票代码或名称，如 600519 或 茅台"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* 搜索结果 */}
+                {stockSearchResults.length > 0 && (
+                  <div className="mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+                    {stockSearchResults.map(stock => (
+                      <div
+                        key={stock.code}
+                        onClick={() => {
+                          setSelectedStockToAdd(stock)
+                          setStockSearchQuery('')
+                        }}
+                        className={`flex items-center justify-between px-3 py-2 hover:bg-blue-50 cursor-pointer ${
+                          selectedStockToAdd?.code === stock.code ? 'bg-blue-100' : ''
+                        }`}
+                      >
+                        <div>
+                          <span className="font-medium">{stock.name}</span>
+                          <span className="text-gray-400 ml-2">{stock.code}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="px-2 py-0.5 rounded text-xs"
+                            style={{
+                              backgroundColor: `${sectorColors[stock.sector] || '#6b7280'}20`,
+                              color: sectorColors[stock.sector] || '#6b7280'
+                            }}
+                          >
+                            {stock.sector}
+                          </span>
+                          <span className="text-gray-600">¥{stock.price}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 已选股票 */}
+              {selectedStockToAdd && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <span className="font-semibold text-lg">{selectedStockToAdd.name}</span>
+                      <span className="text-gray-400 ml-2">{selectedStockToAdd.code}</span>
+                    </div>
+                    <span className="text-xl font-bold">¥{selectedStockToAdd.price}</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">买入数量 (股)</label>
+                    <input
+                      type="number"
+                      value={addStockShares}
+                      onChange={(e) => setAddStockShares(Number(e.target.value))}
+                      min={100}
+                      step={100}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex justify-between mt-2 text-sm">
+                      <span className="text-gray-500">预计金额</span>
+                      <span className="font-medium text-blue-600">
+                        ¥{(selectedStockToAdd.price * addStockShares).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowAddStockModal(false)
+                    setSelectedStockToAdd(null)
+                    setStockSearchQuery('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleAddStock}
+                  disabled={!selectedStockToAdd || addStockShares <= 0}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+                >
+                  确认买入
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 调仓弹窗 */}
+      {showRebalanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-[600px] shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">调仓 - {currentPortfolio?.name}</h3>
+              <button onClick={() => setShowRebalanceModal(false)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-blue-700 mb-2">当前可用资金</div>
+                <div className="text-2xl font-bold text-blue-800">¥{currentPortfolio?.cash.toLocaleString()}</div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left py-2 px-3">股票</th>
+                      <th className="text-right py-2 px-3">现价</th>
+                      <th className="text-right py-2 px-3">持仓</th>
+                      <th className="text-center py-2 px-3">调整</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentPortfolio?.stocks.map(stock => (
+                      <tr key={stock.code} className="border-t">
+                        <td className="py-2 px-3">
+                          <div className="font-medium">{stock.name}</div>
+                          <div className="text-xs text-gray-400">{stock.code}</div>
+                        </td>
+                        <td className="py-2 px-3 text-right">¥{stock.current}</td>
+                        <td className="py-2 px-3 text-right">{stock.shares}股</td>
+                        <td className="py-2 px-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200">
+                              买入
+                            </button>
+                            <button className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">
+                              卖出
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowRebalanceModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => {
+                    alert('调仓功能已提交（演示）')
+                    setShowRebalanceModal(false)
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  确认调仓
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 股票详情弹窗 */}
+      {showStockDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-[500px] shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">{showStockDetail.name}</h3>
+                <div className="text-sm text-gray-500">{showStockDetail.code} · {showStockDetail.sector}</div>
+              </div>
+              <button onClick={() => setShowStockDetail(null)}>
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-xs text-gray-500">现价</div>
+                  <div className="text-xl font-bold">¥{showStockDetail.current}</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-xs text-gray-500">成本价</div>
+                  <div className="text-xl font-bold">¥{showStockDetail.cost}</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-xs text-gray-500">持股数量</div>
+                  <div className="text-xl font-bold">{showStockDetail.shares} 股</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-xs text-gray-500">持仓市值</div>
+                  <div className="text-xl font-bold">¥{(showStockDetail.current * showStockDetail.shares).toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-lg ${
+                (showStockDetail.current - showStockDetail.cost) >= 0 ? 'bg-red-50' : 'bg-green-50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">持仓盈亏</span>
+                  <span className={`text-xl font-bold ${
+                    (showStockDetail.current - showStockDetail.cost) >= 0 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {(showStockDetail.current - showStockDetail.cost) >= 0 ? '+' : ''}
+                    ¥{((showStockDetail.current - showStockDetail.cost) * showStockDetail.shares).toFixed(0)}
+                    ({(((showStockDetail.current - showStockDetail.cost) / showStockDetail.cost) * 100).toFixed(2)}%)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowStockDetail(null)}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                >
+                  买入
+                </button>
+                <button
+                  onClick={() => setShowStockDetail(null)}
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                >
+                  卖出
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,51 +1,171 @@
-# React + TypeScript + Vite
+# 量化投资可视化平台
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个功能完善的可视化量化投资研究平台，提供市场数据分析、策略回测、因子库管理、AI投研助理等核心功能。
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react) ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript) ![Tailwind](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?logo=tailwindcss) ![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?logo=vite)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 功能特性
 
-## Expanding the ESLint configuration
+### 📊 市场概览 (Dashboard)
+- 实时市场指数监控（上证、深证、创业板等）
+- 自选股行情展示与管理
+- 板块热力图可视化
+- 涨跌幅排行榜
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### 📈 策略回测 (Strategy Backtest)
+- 可视化策略编辑器
+- 历史数据回测引擎
+- 收益曲线与基准对比
+- 风险指标计算（夏普比率、最大回撤、胜率等）
 
-- Configure the top-level `parserOptions` property like this:
+### 🗄️ 数据中心 (Data Center)
+- SQL查询编辑器（语法高亮）
+- 多数据源管理
+- 数据导入/导出功能
+- 存储空间监控
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### 🧮 因子库 (Factor Library)
+- 因子创建与管理
+- 因子回测分析
+- IC/IR指标计算与可视化
+- 多因子对比功能
+
+### 🤖 AI投研助理 (AI Assistant)
+- 接入 DeepSeek API 实现真实AI对话
+- 流式响应，实时输出
+- 多轮对话上下文记忆
+- 自定义系统提示词
+- 支持停止生成、重新生成
+
+### 📚 知识库 (Knowledge Base)
+- Markdown文档支持与渲染
+- 文章/视频/链接三种类型
+- 收藏与阅读记录追踪
+- 分类筛选与全文搜索
+- 新建/编辑/删除文章
+
+### ⚙️ 系统设置 (System Settings)
+- DeepSeek API配置（密钥、模型、参数）
+- API连接测试功能
+- 本地数据持久化（localStorage）
+- 设置自动记忆
+
+## 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 前端框架 | React 18.3 + TypeScript 5.6 |
+| 构建工具 | Vite 6.0 |
+| UI样式 | Tailwind CSS 3.4 |
+| 图表库 | Recharts |
+| 图标库 | Lucide React |
+| AI接口 | DeepSeek API (OpenAI兼容格式) |
+
+## 快速开始
+
+### 环境要求
+
+- Node.js >= 18.0
+- npm >= 9.0
+
+### 安装与运行
+
+```bash
+# 克隆项目
+git clone https://github.com/your-username/quant-platform.git
+cd quant-platform
+
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 生产构建
+npm run build
+
+# 预览构建结果
+npm run preview
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## 项目结构
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
 ```
-# Auto trigger deployment
+quant-platform/
+├── src/
+│   ├── components/           # 公共组件
+│   │   └── Sidebar.tsx      # 侧边导航栏
+│   ├── pages/               # 页面组件
+│   │   ├── Dashboard.tsx        # 市场概览
+│   │   ├── StrategyBacktest.tsx # 策略回测
+│   │   ├── DataCenter.tsx       # 数据中心
+│   │   ├── FactorLibrary.tsx    # 因子库
+│   │   ├── AIAssistant.tsx      # AI投研助理
+│   │   ├── KnowledgeBase.tsx    # 知识库
+│   │   └── SystemSettings.tsx   # 系统设置
+│   ├── App.tsx              # 应用主入口
+│   ├── main.tsx             # 渲染入口
+│   └── index.css            # 全局样式
+├── public/                  # 静态资源
+├── dist/                    # 构建输出
+├── package.json
+├── vite.config.ts
+├── tailwind.config.js
+├── tsconfig.json
+└── README.md
+```
+
+## 配置说明
+
+### AI助理配置
+
+1. 获取 [DeepSeek API Key](https://platform.deepseek.com)
+2. 进入「系统设置」→「AI配置」
+3. 输入API密钥并点击「保存设置」
+4. 可选：测试API连接
+5. 前往「AI助理」开始对话
+
+### 支持的模型
+
+| 模型 | 说明 |
+|------|------|
+| `deepseek-chat` | 通用对话模型（推荐） |
+| `deepseek-coder` | 代码专用模型 |
+| `deepseek-reasoner` | 推理增强模型 |
+
+## 数据存储
+
+平台使用浏览器 `localStorage` 进行数据持久化：
+
+| Key | 用途 |
+|-----|------|
+| `quantPlatformSettings` | 系统配置（含API密钥、模型参数） |
+| `knowledgeBaseData` | 知识库文章数据与浏览记录 |
+
+## 截图预览
+
+### 市场概览
+实时展示市场指数、自选股行情、板块热力图
+
+### AI投研助理
+接入DeepSeek大模型，提供智能投研分析
+
+### 知识库
+Markdown文档管理，支持收藏与搜索
+
+## 开发计划
+
+- [ ] 实盘交易接口对接
+- [ ] 更多技术指标支持
+- [ ] 策略模板市场
+- [ ] 多用户协作功能
+- [ ] 移动端适配
+- [ ] 深色模式
+
+## 许可证
+
+MIT License
+
+---
+
+**Developed with ❤️ for quantitative investment research**
