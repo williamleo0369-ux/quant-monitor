@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Search, Star, TrendingUp, TrendingDown, Plus, X, RefreshCw, Globe, AlertCircle, BarChart3, Activity, Calendar } from 'lucide-react'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { stockDatabase as realTimeStockDB, refreshLocalData, searchStocks, type StockQuote } from '../services/stockApi'
 
 interface Stock {
   symbol: string
@@ -427,7 +428,7 @@ export default function StockSearch() {
     return () => clearInterval(interval)
   }, [selectedStock, chartPeriod])
 
-  // 搜索股票
+  // 搜索股票 - 同时从本地数据库和实时API搜索
   const handleSearch = () => {
     if (!searchTerm.trim()) {
       setSearchResults([])
@@ -437,10 +438,34 @@ export default function StockSearch() {
     setIsSearching(true)
     setTimeout(() => {
       const term = searchTerm.toLowerCase()
+
+      // 从本地股票数据库搜索
       let results = stockDatabase.filter(stock =>
         stock.symbol.toLowerCase().includes(term) ||
         stock.name.toLowerCase().includes(term)
       )
+
+      // 从实时API数据库补充搜索
+      const apiResults = searchStocks(term)
+      apiResults.forEach(apiStock => {
+        // 检查是否已在本地结果中
+        const exists = results.some(r => r.symbol === apiStock.code)
+        if (!exists) {
+          results.push({
+            symbol: apiStock.code,
+            name: apiStock.name,
+            market: 'A股' as const,
+            price: apiStock.price,
+            change: apiStock.change,
+            changePercent: apiStock.changePercent,
+            volume: apiStock.volume,
+            marketCap: apiStock.marketCap || '-',
+            pe: apiStock.pe || 0,
+            high52w: 0,
+            low52w: 0,
+          })
+        }
+      })
 
       if (marketFilter !== 'all') {
         results = results.filter(stock => stock.market === marketFilter)
@@ -478,18 +503,41 @@ export default function StockSearch() {
     return watchlist.some(s => s.symbol === symbol && s.market === market)
   }
 
-  // 刷新行情
+  // 刷新行情 - 使用实时API数据
   const refreshQuotes = () => {
-    setWatchlist(prev => prev.map(stock => generateRealtimeData({
-      ...stock,
-      price: stock.price * (1 + (Math.random() - 0.5) * 0.02)
-    })))
+    const refreshedData = refreshLocalData()
+
+    setWatchlist(prev => prev.map(stock => {
+      const realData = refreshedData[stock.symbol]
+      if (realData) {
+        return generateRealtimeData({
+          ...stock,
+          price: realData.price,
+          changePercent: realData.changePercent,
+          prevClose: realData.prevClose,
+        })
+      }
+      return generateRealtimeData({
+        ...stock,
+        price: stock.price * (1 + (Math.random() - 0.5) * 0.02)
+      })
+    }))
     // 同时刷新当前选中股票
     if (selectedStock) {
-      setSelectedStock(generateRealtimeData({
-        ...selectedStock,
-        price: selectedStock.price * (1 + (Math.random() - 0.5) * 0.02)
-      }))
+      const realData = refreshedData[selectedStock.symbol]
+      if (realData) {
+        setSelectedStock(generateRealtimeData({
+          ...selectedStock,
+          price: realData.price,
+          changePercent: realData.changePercent,
+          prevClose: realData.prevClose,
+        }))
+      } else {
+        setSelectedStock(generateRealtimeData({
+          ...selectedStock,
+          price: selectedStock.price * (1 + (Math.random() - 0.5) * 0.02)
+        }))
+      }
     }
   }
 

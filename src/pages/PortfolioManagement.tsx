@@ -17,6 +17,7 @@ import {
   ArrowUpDown, Edit2, X, Check, RefreshCw, ChevronDown,
   PieChartIcon, BarChart3, Target, AlertCircle, Save, Trash2
 } from 'lucide-react'
+import { stockDatabase as realTimeStockDB, refreshLocalData, searchStocks, type StockQuote } from '../services/stockApi'
 
 // 股票搜索数据库（含ETF基金）- 真实数据来源: Yahoo Finance 2026-02-21
 const stockSearchDatabase: Record<string, { name: string; price: number; sector: string; prevClose?: number; change?: number; changePercent?: number }> = {
@@ -327,17 +328,52 @@ export default function PortfolioManagement() {
     return portfolios.find(p => p.id === selectedPortfolioId) || portfolios[0]
   }, [portfolios, selectedPortfolioId])
 
-  // 股票搜索结果
+  // 股票搜索结果 - 合并本地数据库和实时API数据库
   const stockSearchResults = useMemo(() => {
     if (!stockSearchQuery.trim()) return []
 
-    return Object.entries(stockSearchDatabase)
+    // 根据代码推断证券类型
+    const inferSector = (code: string): string => {
+      if (code.startsWith('51') || code.startsWith('56') || code.startsWith('58') ||
+          code.startsWith('15') || code.startsWith('16')) return 'ETF基金'
+      if (code.startsWith('000') && code.length === 6 && parseInt(code) < 2000) return '指数'
+      if (code.startsWith('399')) return '指数'
+      if (code.startsWith('68')) return '科创板'
+      if (code.startsWith('30')) return '创业板'
+      if (code.startsWith('6')) return '沪市'
+      if (code.startsWith('0') || code.startsWith('002')) return '深市'
+      return '股票'
+    }
+
+    // 从本地数据库搜索
+    const localResults = Object.entries(stockSearchDatabase)
       .filter(([code, info]) =>
         code.includes(stockSearchQuery) ||
         info.name.includes(stockSearchQuery)
       )
       .map(([code, info]) => ({ code, ...info }))
-      .slice(0, 8)
+
+    // 从实时API数据库搜索
+    const apiResults = Object.entries(realTimeStockDB)
+      .filter(([code, info]) =>
+        code.includes(stockSearchQuery) ||
+        info.name.includes(stockSearchQuery)
+      )
+      .map(([code, info]) => ({
+        code,
+        name: info.name,
+        price: info.price,
+        sector: inferSector(code)
+      }))
+
+    // 合并结果，去重（本地优先）
+    const allCodes = new Set(localResults.map(r => r.code))
+    const mergedResults = [
+      ...localResults,
+      ...apiResults.filter(r => !allCodes.has(r.code))
+    ]
+
+    return mergedResults.slice(0, 10)
   }, [stockSearchQuery])
 
   // 计算持仓数据
@@ -625,16 +661,28 @@ export default function PortfolioManagement() {
     setIsEditingShares(false)
   }
 
-  // 刷新数据 - 从真实数据源获取最新价格
+  // 刷新数据 - 从实时API获取最新价格
   const handleRefresh = () => {
+    // 获取刷新后的实时数据
+    const refreshedApiData = refreshLocalData()
+
     setPortfolios(prev => prev.map(portfolio => {
-      // 使用stockSearchDatabase中的真实价格更新股票现价
+      // 使用stockSearchDatabase和实时API数据更新股票现价
       const updatedStocks = portfolio.stocks.map(stock => {
-        const realData = stockSearchDatabase[stock.code]
-        if (realData) {
+        // 优先从实时API获取数据
+        const apiData = refreshedApiData[stock.code]
+        if (apiData) {
           return {
             ...stock,
-            current: realData.price
+            current: apiData.price
+          }
+        }
+        // fallback到本地数据库
+        const localData = stockSearchDatabase[stock.code]
+        if (localData) {
+          return {
+            ...stock,
+            current: localData.price
           }
         }
         return stock
@@ -646,12 +694,17 @@ export default function PortfolioManagement() {
       const totalPnl = stocksValue - costValue
       const totalPnlPercent = costValue > 0 ? (totalPnl / costValue) * 100 : 0
 
-      // 计算今日盈亏：使用真实涨跌数据
+      // 计算今日盈亏：使用实时API涨跌数据
       let todayPnl = 0
       updatedStocks.forEach(stock => {
-        const realData = stockSearchDatabase[stock.code]
-        if (realData && realData.change !== undefined) {
-          todayPnl += realData.change * stock.shares
+        const apiData = refreshedApiData[stock.code]
+        if (apiData && apiData.change !== undefined) {
+          todayPnl += apiData.change * stock.shares
+        } else {
+          const localData = stockSearchDatabase[stock.code]
+          if (localData && localData.change !== undefined) {
+            todayPnl += localData.change * stock.shares
+          }
         }
       })
       const todayPnlPercent = stocksValue > 0 ? (todayPnl / (stocksValue - todayPnl)) * 100 : 0
