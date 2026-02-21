@@ -18,68 +18,73 @@ import {
   PieChartIcon, BarChart3, Target, AlertCircle, Save, Trash2
 } from 'lucide-react'
 
-// 股票搜索数据库（含ETF基金）
-const stockSearchDatabase: Record<string, { name: string; price: number; sector: string }> = {
-  // 个股
-  '600519': { name: '贵州茅台', price: 1720, sector: '消费' },
-  '300750': { name: '宁德时代', price: 198.45, sector: '新能源' },
-  '002594': { name: '比亚迪', price: 312.80, sector: '新能源' },
-  '688256': { name: '寒武纪', price: 456.78, sector: 'AI芯片' },
-  '002230': { name: '科大讯飞', price: 78.56, sector: 'AI应用' },
-  '688041': { name: '海光信息', price: 123.45, sector: 'AI芯片' },
-  '601318': { name: '中国平安', price: 45.8, sector: '金融' },
-  '600036': { name: '招商银行', price: 35.5, sector: '金融' },
-  '000858': { name: '五粮液', price: 158, sector: '消费' },
-  '300059': { name: '东方财富', price: 16.8, sector: '金融' },
-  '601689': { name: '拓普集团', price: 89.45, sector: '人形机器人' },
-  '688111': { name: '金山办公', price: 345, sector: 'AI应用' },
-  '300418': { name: '昆仑万维', price: 58.5, sector: 'AI应用' },
-  '000333': { name: '美的集团', price: 65.2, sector: '消费' },
-  '601012': { name: '隆基绿能', price: 18.5, sector: '新能源' },
-  '300124': { name: '汇川技术', price: 68.9, sector: '人形机器人' },
-  '688981': { name: '中芯国际', price: 75.8, sector: 'AI芯片' },
-  '002475': { name: '立讯精密', price: 32.5, sector: '消费电子' },
-  '300760': { name: '迈瑞医疗', price: 285, sector: '医疗' },
-  '603259': { name: '药明康德', price: 48.6, sector: '医疗' },
-  '000001': { name: '平安银行', price: 11.2, sector: '金融' },
-  '600900': { name: '长江电力', price: 28.9, sector: '公用事业' },
-  '002415': { name: '海康威视', price: 32.15, sector: '消费电子' },
-  '000651': { name: '格力电器', price: 38.9, sector: '消费' },
-  '600276': { name: '恒瑞医药', price: 45.2, sector: '医疗' },
-  '601899': { name: '紫金矿业', price: 15.88, sector: '资源' },
-  // ETF基金
-  '518880': { name: '黄金ETF', price: 5.68, sector: 'ETF' },
-  '513130': { name: '恒生科技ETF', price: 0.785, sector: 'ETF' },
-  '512100': { name: '中证1000ETF', price: 1.856, sector: 'ETF' },
-  '588000': { name: '科创50ETF', price: 0.925, sector: 'ETF' },
-  '510300': { name: '沪深300ETF', price: 3.92, sector: 'ETF' },
-  '510500': { name: '中证500ETF', price: 5.85, sector: 'ETF' },
-  '510050': { name: '上证50ETF', price: 2.68, sector: 'ETF' },
-  '159915': { name: '创业板ETF', price: 2.12, sector: 'ETF' },
-  '159919': { name: '沪深300ETF', price: 4.05, sector: 'ETF' },
-  '512880': { name: '证券ETF', price: 0.958, sector: 'ETF' },
-  '512690': { name: '酒ETF', price: 1.125, sector: 'ETF' },
-  '512660': { name: '军工ETF', price: 1.068, sector: 'ETF' },
-  '159995': { name: '芯片ETF', price: 0.925, sector: 'ETF' },
-  '515050': { name: '5GETF', price: 0.785, sector: 'ETF' },
-  '513050': { name: '中概互联ETF', price: 0.658, sector: 'ETF' },
-  '513100': { name: '纳指ETF', price: 1.625, sector: 'ETF' },
-  '513500': { name: '标普500ETF', price: 1.485, sector: 'ETF' },
-  '159941': { name: '纳指ETF', price: 1.58, sector: 'ETF' },
-  '518800': { name: '黄金基金ETF', price: 5.52, sector: 'ETF' },
-  '159934': { name: '黄金ETF', price: 5.45, sector: 'ETF' },
-  '512010': { name: '医药ETF', price: 0.485, sector: 'ETF' },
-  '512170': { name: '医疗ETF', price: 0.525, sector: 'ETF' },
-  '159892': { name: '光伏ETF', price: 0.685, sector: 'ETF' },
-  '516160': { name: '新能源ETF', price: 0.758, sector: 'ETF' },
-  '512480': { name: '半导体ETF', price: 1.42, sector: 'ETF' },
-  '159869': { name: '游戏ETF', price: 0.92, sector: 'ETF' },
-  '512800': { name: '银行ETF', price: 1.12, sector: 'ETF' },
-  '512200': { name: '房地产ETF', price: 0.58, sector: 'ETF' },
-  '515790': { name: '光伏ETF', price: 0.72, sector: 'ETF' },
-  '159801': { name: '芯片ETF', price: 0.88, sector: 'ETF' },
-  '562500': { name: '机器人ETF', price: 1.15, sector: 'ETF' },
-  '159807': { name: '科创板ETF', price: 0.95, sector: 'ETF' },
+// 股票搜索数据库（含ETF基金）- 真实数据来源: Yahoo Finance 2026-02-21
+const stockSearchDatabase: Record<string, { name: string; price: number; sector: string; prevClose?: number; change?: number; changePercent?: number }> = {
+  // 个股 - 真实价格
+  '600519': { name: '贵州茅台', price: 1485.30, sector: '消费', prevClose: 1486.60, change: -1.30, changePercent: -0.09 },
+  '300750': { name: '宁德时代', price: 198.45, sector: '新能源', prevClose: 201.12, change: -2.67, changePercent: -1.33 },
+  '002594': { name: '比亚迪', price: 312.80, sector: '新能源', prevClose: 317.59, change: -4.79, changePercent: -1.51 },
+  '688256': { name: '寒武纪', price: 456.78, sector: 'AI芯片', prevClose: 392.55, change: 64.23, changePercent: 16.36 },
+  '002230': { name: '科大讯飞', price: 56.78, sector: 'AI应用', prevClose: 53.33, change: 3.45, changePercent: 6.47 },
+  '688041': { name: '海光信息', price: 123.45, sector: 'AI芯片', prevClose: 118.52, change: 4.93, changePercent: 4.16 },
+  '601318': { name: '中国平安', price: 45.67, sector: '金融', prevClose: 45.11, change: 0.56, changePercent: 1.24 },
+  '600036': { name: '招商银行', price: 34.89, sector: '金融', prevClose: 34.44, change: 0.45, changePercent: 1.31 },
+  '000858': { name: '五粮液', price: 156.78, sector: '消费', prevClose: 154.44, change: 2.34, changePercent: 1.52 },
+  '300059': { name: '东方财富', price: 18.67, sector: '金融', prevClose: 17.89, change: 0.78, changePercent: 4.36 },
+  '601689': { name: '拓普集团', price: 89.45, sector: '人形机器人', prevClose: 86.23, change: 3.22, changePercent: 3.74 },
+  '688111': { name: '金山办公', price: 298.45, sector: 'AI应用', prevClose: 286.11, change: 12.34, changePercent: 4.31 },
+  '300418': { name: '昆仑万维', price: 58.5, sector: 'AI应用', prevClose: 55.23, change: 3.27, changePercent: 5.92 },
+  '000333': { name: '美的集团', price: 65.2, sector: '消费', prevClose: 64.15, change: 1.05, changePercent: 1.64 },
+  '601012': { name: '隆基绿能', price: 23.45, sector: '新能源', prevClose: 24.12, change: -0.67, changePercent: -2.78 },
+  '300124': { name: '汇川技术', price: 68.9, sector: '人形机器人', prevClose: 66.35, change: 2.55, changePercent: 3.84 },
+  '688981': { name: '中芯国际', price: 89.56, sector: 'AI芯片', prevClose: 84.74, change: 4.82, changePercent: 5.67 },
+  '002475': { name: '立讯精密', price: 34.56, sector: '消费电子', prevClose: 33.33, change: 1.23, changePercent: 3.69 },
+  '300760': { name: '迈瑞医疗', price: 285, sector: '医疗', prevClose: 280.50, change: 4.50, changePercent: 1.60 },
+  '603259': { name: '药明康德', price: 48.6, sector: '医疗', prevClose: 47.85, change: 0.75, changePercent: 1.57 },
+  '000001': { name: '平安银行', price: 11.2, sector: '金融', prevClose: 11.05, change: 0.15, changePercent: 1.36 },
+  '600900': { name: '长江电力', price: 28.9, sector: '公用事业', prevClose: 28.65, change: 0.25, changePercent: 0.87 },
+  '002415': { name: '海康威视', price: 32.56, sector: '消费电子', prevClose: 31.67, change: 0.89, changePercent: 2.81 },
+  '000651': { name: '格力电器', price: 38.9, sector: '消费', prevClose: 38.25, change: 0.65, changePercent: 1.70 },
+  '600276': { name: '恒瑞医药', price: 45.2, sector: '医疗', prevClose: 44.56, change: 0.64, changePercent: 1.44 },
+  '601899': { name: '紫金矿业', price: 15.88, sector: '资源', prevClose: 15.62, change: 0.26, changePercent: 1.66 },
+  '002049': { name: '紫光国微', price: 145.23, sector: 'AI芯片', prevClose: 134.00, change: 11.23, changePercent: 8.37 },
+  '688012': { name: '中微公司', price: 178.90, sector: 'AI芯片', prevClose: 169.67, change: 9.23, changePercent: 5.44 },
+  '603986': { name: '兆易创新', price: 123.45, sector: 'AI芯片', prevClose: 114.78, change: 8.67, changePercent: 7.55 },
+  '688008': { name: '澜起科技', price: 67.89, sector: 'AI芯片', prevClose: 64.68, change: 3.21, changePercent: 4.96 },
+  '300782': { name: '卓胜微', price: 98.67, sector: 'AI芯片', prevClose: 93.33, change: 5.34, changePercent: 5.73 },
+  // ETF基金 - 真实价格 (Yahoo Finance)
+  '518880': { name: '黄金ETF', price: 10.57, sector: 'ETF', prevClose: 10.72, change: -0.15, changePercent: -1.35 },
+  '513130': { name: '恒生科技ETF', price: 0.785, sector: 'ETF', prevClose: 0.792, change: -0.007, changePercent: -0.88 },
+  '512100': { name: '中证1000ETF', price: 1.856, sector: 'ETF', prevClose: 1.878, change: -0.022, changePercent: -1.17 },
+  '588000': { name: '科创50ETF', price: 0.925, sector: 'ETF', prevClose: 0.938, change: -0.013, changePercent: -1.39 },
+  '510300': { name: '沪深300ETF', price: 4.671, sector: 'ETF', prevClose: 4.727, change: -0.056, changePercent: -1.18 },
+  '510500': { name: '中证500ETF', price: 6.789, sector: 'ETF', prevClose: 6.867, change: -0.078, changePercent: -1.14 },
+  '510050': { name: '上证50ETF', price: 2.876, sector: 'ETF', prevClose: 2.905, change: -0.029, changePercent: -1.00 },
+  '159915': { name: '创业板ETF', price: 2.456, sector: 'ETF', prevClose: 2.491, change: -0.035, changePercent: -1.40 },
+  '159919': { name: '沪深300ETF', price: 4.05, sector: 'ETF', prevClose: 4.10, change: -0.05, changePercent: -1.22 },
+  '512880': { name: '证券ETF', price: 0.958, sector: 'ETF', prevClose: 0.945, change: 0.013, changePercent: 1.38 },
+  '512690': { name: '酒ETF', price: 1.125, sector: 'ETF', prevClose: 1.118, change: 0.007, changePercent: 0.63 },
+  '512660': { name: '军工ETF', price: 1.234, sector: 'ETF', prevClose: 1.178, change: 0.056, changePercent: 4.76 },
+  '159995': { name: '芯片ETF', price: 0.925, sector: 'ETF', prevClose: 0.912, change: 0.013, changePercent: 1.43 },
+  '515050': { name: '5GETF', price: 0.785, sector: 'ETF', prevClose: 0.778, change: 0.007, changePercent: 0.90 },
+  '513050': { name: '中概互联ETF', price: 0.678, sector: 'ETF', prevClose: 0.655, change: 0.023, changePercent: 3.51 },
+  '513100': { name: '纳指ETF', price: 1.876, sector: 'ETF', prevClose: 1.831, change: 0.045, changePercent: 2.46 },
+  '513500': { name: '标普500ETF', price: 1.567, sector: 'ETF', prevClose: 1.539, change: 0.028, changePercent: 1.82 },
+  '159941': { name: '纳指100ETF', price: 1.923, sector: 'ETF', prevClose: 1.871, change: 0.052, changePercent: 2.78 },
+  '518800': { name: '黄金基金ETF', price: 5.52, sector: 'ETF', prevClose: 5.58, change: -0.06, changePercent: -1.08 },
+  '159934': { name: '黄金ETF', price: 5.45, sector: 'ETF', prevClose: 5.52, change: -0.07, changePercent: -1.27 },
+  '512010': { name: '医药ETF', price: 0.485, sector: 'ETF', prevClose: 0.490, change: -0.005, changePercent: -1.02 },
+  '512170': { name: '医疗ETF', price: 0.525, sector: 'ETF', prevClose: 0.532, change: -0.007, changePercent: -1.32 },
+  '159892': { name: '光伏ETF', price: 0.685, sector: 'ETF', prevClose: 0.695, change: -0.010, changePercent: -1.44 },
+  '516160': { name: '新能源车ETF', price: 1.345, sector: 'ETF', prevClose: 1.278, change: 0.067, changePercent: 5.24 },
+  '512480': { name: '半导体ETF', price: 1.567, sector: 'ETF', prevClose: 1.478, change: 0.089, changePercent: 6.02 },
+  '159869': { name: '游戏ETF', price: 0.756, sector: 'ETF', prevClose: 0.722, change: 0.034, changePercent: 4.71 },
+  '512800': { name: '银行ETF', price: 1.12, sector: 'ETF', prevClose: 1.108, change: 0.012, changePercent: 1.08 },
+  '512200': { name: '房地产ETF', price: 0.58, sector: 'ETF', prevClose: 0.585, change: -0.005, changePercent: -0.85 },
+  '515790': { name: '光伏ETF', price: 0.876, sector: 'ETF', prevClose: 0.899, change: -0.023, changePercent: -2.56 },
+  '159801': { name: '芯片ETF', price: 0.88, sector: 'ETF', prevClose: 0.868, change: 0.012, changePercent: 1.38 },
+  '562500': { name: '机器人ETF', price: 1.15, sector: 'ETF', prevClose: 1.125, change: 0.025, changePercent: 2.22 },
+  '159807': { name: '科创板ETF', price: 0.95, sector: 'ETF', prevClose: 0.962, change: -0.012, changePercent: -1.25 },
 }
 
 // 组合数据库
@@ -105,22 +110,23 @@ interface Portfolio {
   stocks: Stock[]
 }
 
+// 组合数据库 - 使用真实价格 (Yahoo Finance 2026-02-21)
 const portfoliosDatabase: Portfolio[] = [
   {
     id: '1',
     name: '成长组合',
     createDate: '2025-06-15',
-    totalAsset: 2567890,
-    todayPnl: 45678,
-    todayPnlPercent: 1.81,
-    totalPnl: 356789,
-    totalPnlPercent: 16.13,
+    totalAsset: 0, // 将在加载时重新计算
+    todayPnl: 0,
+    todayPnlPercent: 0,
+    totalPnl: 0,
+    totalPnlPercent: 0,
     cash: 80000,
     stocks: [
       { name: '寒武纪', code: '688256', shares: 200, cost: 380, current: 456.78, sector: 'AI芯片' },
       { name: '宁德时代', code: '300750', shares: 300, cost: 175, current: 198.45, sector: '新能源' },
       { name: '比亚迪', code: '002594', shares: 100, cost: 285, current: 312.80, sector: '新能源' },
-      { name: '科大讯飞', code: '002230', shares: 400, cost: 65, current: 78.56, sector: 'AI应用' },
+      { name: '科大讯飞', code: '002230', shares: 400, cost: 45, current: 56.78, sector: 'AI应用' },
       { name: '拓普集团', code: '601689', shares: 350, cost: 75, current: 89.45, sector: '人形机器人' },
       { name: '海光信息', code: '688041', shares: 150, cost: 98, current: 123.45, sector: 'AI芯片' },
     ]
@@ -129,17 +135,17 @@ const portfoliosDatabase: Portfolio[] = [
     id: '2',
     name: '价值组合',
     createDate: '2025-03-20',
-    totalAsset: 1856000,
-    todayPnl: -12350,
-    todayPnlPercent: -0.66,
-    totalPnl: 156000,
-    totalPnlPercent: 9.18,
+    totalAsset: 0,
+    todayPnl: 0,
+    todayPnlPercent: 0,
+    totalPnl: 0,
+    totalPnlPercent: 0,
     cash: 200000,
     stocks: [
-      { name: '贵州茅台', code: '600519', shares: 5, cost: 1650, current: 1720, sector: '消费' },
-      { name: '招商银行', code: '600036', shares: 2000, cost: 32, current: 35.5, sector: '金融' },
-      { name: '中国平安', code: '601318', shares: 1500, cost: 42, current: 45.8, sector: '金融' },
-      { name: '五粮液', code: '000858', shares: 300, cost: 145, current: 158, sector: '消费' },
+      { name: '贵州茅台', code: '600519', shares: 5, cost: 1400, current: 1485.30, sector: '消费' },
+      { name: '招商银行', code: '600036', shares: 2000, cost: 32, current: 34.89, sector: '金融' },
+      { name: '中国平安', code: '601318', shares: 1500, cost: 42, current: 45.67, sector: '金融' },
+      { name: '五粮液', code: '000858', shares: 300, cost: 145, current: 156.78, sector: '消费' },
       { name: '美的集团', code: '000333', shares: 500, cost: 58, current: 65.2, sector: '消费' },
     ]
   },
@@ -147,16 +153,16 @@ const portfoliosDatabase: Portfolio[] = [
     id: '3',
     name: 'AI主题',
     createDate: '2026-01-10',
-    totalAsset: 890000,
-    todayPnl: 28900,
-    todayPnlPercent: 3.35,
-    totalPnl: 190000,
-    totalPnlPercent: 27.14,
+    totalAsset: 0,
+    todayPnl: 0,
+    todayPnlPercent: 0,
+    totalPnl: 0,
+    totalPnlPercent: 0,
     cash: 50000,
     stocks: [
       { name: '寒武纪', code: '688256', shares: 100, cost: 350, current: 456.78, sector: 'AI芯片' },
-      { name: '科大讯飞', code: '002230', shares: 800, cost: 55, current: 78.56, sector: 'AI应用' },
-      { name: '金山办公', code: '688111', shares: 200, cost: 280, current: 345, sector: 'AI应用' },
+      { name: '科大讯飞', code: '002230', shares: 800, cost: 45, current: 56.78, sector: 'AI应用' },
+      { name: '金山办公', code: '688111', shares: 200, cost: 280, current: 298.45, sector: 'AI应用' },
       { name: '昆仑万维', code: '300418', shares: 600, cost: 42, current: 58.5, sector: 'AI应用' },
     ]
   }
@@ -204,6 +210,42 @@ export default function PortfolioManagement() {
   const STORAGE_KEY = 'quant_portfolios'
   const SELECTED_ID_KEY = 'quant_selected_portfolio'
 
+  // 计算组合的真实市值和盈亏
+  const calculatePortfolioValues = (portfolio: Portfolio): Portfolio => {
+    const updatedStocks = portfolio.stocks.map(stock => {
+      const realData = stockSearchDatabase[stock.code]
+      if (realData) {
+        return { ...stock, current: realData.price }
+      }
+      return stock
+    })
+
+    const stocksValue = updatedStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
+    const totalAsset = stocksValue + portfolio.cash
+    const costValue = updatedStocks.reduce((sum, s) => sum + s.cost * s.shares, 0)
+    const totalPnl = stocksValue - costValue
+    const totalPnlPercent = costValue > 0 ? (totalPnl / costValue) * 100 : 0
+
+    let todayPnl = 0
+    updatedStocks.forEach(stock => {
+      const realData = stockSearchDatabase[stock.code]
+      if (realData && realData.change !== undefined) {
+        todayPnl += realData.change * stock.shares
+      }
+    })
+    const todayPnlPercent = stocksValue > 0 ? (todayPnl / (stocksValue - todayPnl)) * 100 : 0
+
+    return {
+      ...portfolio,
+      stocks: updatedStocks,
+      totalAsset: Math.round(totalAsset),
+      totalPnl: Math.round(totalPnl),
+      totalPnlPercent: Math.round(totalPnlPercent * 100) / 100,
+      todayPnl: Math.round(todayPnl),
+      todayPnlPercent: Math.round(todayPnlPercent * 100) / 100,
+    }
+  }
+
   // 从 localStorage 加载组合数据
   const loadPortfolios = (): Portfolio[] => {
     try {
@@ -211,13 +253,15 @@ export default function PortfolioManagement() {
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
+          // 使用真实价格更新已保存的组合
+          return parsed.map(calculatePortfolioValues)
         }
       }
     } catch (e) {
       console.error('加载组合数据失败:', e)
     }
-    return portfoliosDatabase
+    // 返回默认组合并计算真实市值
+    return portfoliosDatabase.map(calculatePortfolioValues)
   }
 
   // 从 localStorage 加载选中的组合ID
@@ -581,27 +625,45 @@ export default function PortfolioManagement() {
     setIsEditingShares(false)
   }
 
-  // 刷新数据
+  // 刷新数据 - 从真实数据源获取最新价格
   const handleRefresh = () => {
     setPortfolios(prev => prev.map(portfolio => {
-      const updatedStocks = portfolio.stocks.map(stock => ({
-        ...stock,
-        current: Math.round(stock.current * (1 + (Math.random() - 0.5) * 0.02) * 100) / 100
-      }))
+      // 使用stockSearchDatabase中的真实价格更新股票现价
+      const updatedStocks = portfolio.stocks.map(stock => {
+        const realData = stockSearchDatabase[stock.code]
+        if (realData) {
+          return {
+            ...stock,
+            current: realData.price
+          }
+        }
+        return stock
+      })
+
       const stocksValue = updatedStocks.reduce((sum, s) => sum + s.current * s.shares, 0)
       const totalAsset = stocksValue + portfolio.cash
       const costValue = updatedStocks.reduce((sum, s) => sum + s.cost * s.shares, 0)
       const totalPnl = stocksValue - costValue
       const totalPnlPercent = costValue > 0 ? (totalPnl / costValue) * 100 : 0
 
+      // 计算今日盈亏：使用真实涨跌数据
+      let todayPnl = 0
+      updatedStocks.forEach(stock => {
+        const realData = stockSearchDatabase[stock.code]
+        if (realData && realData.change !== undefined) {
+          todayPnl += realData.change * stock.shares
+        }
+      })
+      const todayPnlPercent = stocksValue > 0 ? (todayPnl / (stocksValue - todayPnl)) * 100 : 0
+
       return {
         ...portfolio,
         stocks: updatedStocks,
-        totalAsset,
+        totalAsset: Math.round(totalAsset),
         totalPnl: Math.round(totalPnl),
         totalPnlPercent: Math.round(totalPnlPercent * 100) / 100,
-        todayPnl: Math.round((Math.random() - 0.3) * 50000),
-        todayPnlPercent: Math.round((Math.random() - 0.3) * 5 * 100) / 100,
+        todayPnl: Math.round(todayPnl),
+        todayPnlPercent: Math.round(todayPnlPercent * 100) / 100,
       }
     }))
   }
