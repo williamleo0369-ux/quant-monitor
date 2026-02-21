@@ -15,10 +15,84 @@ interface Stock {
   high52w: number
   low52w: number
   addedAt?: number
+  // 详细实时行情数据
+  open?: number       // 今开
+  high?: number       // 最高
+  low?: number        // 最低
+  prevClose?: number  // 昨收
+  limitUp?: number    // 涨停价
+  limitDown?: number  // 跌停价
+  turnoverRate?: number  // 换手率
+  amplitude?: number     // 振幅
+  volumeRatio?: number   // 量比
+  turnover?: string      // 成交额
+  avgPrice?: number      // 均价
+  outerVol?: string      // 外盘
+  innerVol?: string      // 内盘
+  updateTime?: string    // 更新时间
 }
 
 interface WatchlistStock extends Stock {
   notes?: string
+}
+
+// 生成详细实时行情数据
+const generateRealtimeData = (stock: Partial<Stock>): Stock => {
+  const price = stock.price || 10
+  const prevClose = stock.prevClose || price * (1 - (stock.changePercent || 0) / 100)
+  const change = price - prevClose
+  const changePercent = ((price - prevClose) / prevClose) * 100
+
+  // A股涨跌停为±10%
+  const limitUp = prevClose * 1.1
+  const limitDown = prevClose * 0.9
+
+  // 计算其他行情数据
+  const high = price * (1 + Math.random() * 0.02)
+  const low = price * (1 - Math.random() * 0.02)
+  const open = prevClose * (1 + (Math.random() - 0.5) * 0.015)
+  const amplitude = ((high - low) / prevClose) * 100
+  const turnoverRate = 2 + Math.random() * 8
+  const volumeRatio = 0.5 + Math.random() * 1.5
+  const avgPrice = (high + low + price) / 3
+
+  // 成交量和成交额
+  const volNum = 500 + Math.random() * 1500
+  const turnoverNum = volNum * avgPrice
+
+  // 外盘内盘
+  const outerRatio = 0.4 + Math.random() * 0.2
+  const outerVolNum = volNum * outerRatio
+  const innerVolNum = volNum * (1 - outerRatio)
+
+  // 生成当前时间戳 (基于2026-02-21)
+  const now = new Date('2026-02-21T15:30:00')
+  const hours = 9 + Math.floor(Math.random() * 7)
+  const minutes = Math.floor(Math.random() * 60)
+  const seconds = Math.floor(Math.random() * 60)
+  now.setHours(hours, minutes, seconds)
+  const updateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+
+  return {
+    ...stock as Stock,
+    price,
+    change: Number(change.toFixed(3)),
+    changePercent: Number(changePercent.toFixed(2)),
+    prevClose: Number(prevClose.toFixed(3)),
+    open: Number(open.toFixed(3)),
+    high: Number(high.toFixed(3)),
+    low: Number(low.toFixed(3)),
+    limitUp: Number(limitUp.toFixed(3)),
+    limitDown: Number(limitDown.toFixed(3)),
+    turnoverRate: Number(turnoverRate.toFixed(2)),
+    amplitude: Number(amplitude.toFixed(2)),
+    volumeRatio: Number(volumeRatio.toFixed(2)),
+    avgPrice: Number(avgPrice.toFixed(3)),
+    turnover: turnoverNum > 10000 ? `${(turnoverNum / 10000).toFixed(2)}亿` : `${turnoverNum.toFixed(0)}万`,
+    outerVol: `${outerVolNum.toFixed(1)}万`,
+    innerVol: `${innerVolNum.toFixed(1)}万`,
+    updateTime,
+  }
 }
 
 // 模拟股票数据库（含ETF基金）
@@ -312,15 +386,18 @@ export default function StockSearch() {
   useEffect(() => {
     const interval = setInterval(() => {
       // 刷新自选股行情
-      setWatchlist(prev => prev.map(stock => ({
+      setWatchlist(prev => prev.map(stock => generateRealtimeData({
         ...stock,
-        price: stock.price * (1 + (Math.random() - 0.5) * 0.02),
-        change: stock.price * (Math.random() - 0.5) * 0.02,
-        changePercent: (Math.random() - 0.5) * 4
+        price: stock.price * (1 + (Math.random() - 0.5) * 0.02)
       })))
       // 刷新当前选中股票的图表数据
       if (selectedStock) {
-        setChartData(generateChartData(selectedStock.price, chartPeriod))
+        const newStock = generateRealtimeData({
+          ...selectedStock,
+          price: selectedStock.price * (1 + (Math.random() - 0.5) * 0.02)
+        })
+        setSelectedStock(newStock)
+        setChartData(generateChartData(newStock.price, chartPeriod))
       }
       setLastUpdateTime(new Date())
     }, 10 * 60 * 1000) // 10分钟
@@ -347,9 +424,15 @@ export default function StockSearch() {
         results = results.filter(stock => stock.market === marketFilter)
       }
 
-      setSearchResults(results)
+      // 为搜索结果生成详细行情数据
+      setSearchResults(results.map(stock => generateRealtimeData(stock)))
       setIsSearching(false)
     }, 300)
+  }
+
+  // 选择股票时生成详细行情数据
+  const handleSelectStock = (stock: Stock) => {
+    setSelectedStock(generateRealtimeData(stock))
   }
 
   // 添加到自选
@@ -375,12 +458,17 @@ export default function StockSearch() {
 
   // 刷新行情
   const refreshQuotes = () => {
-    setWatchlist(prev => prev.map(stock => ({
+    setWatchlist(prev => prev.map(stock => generateRealtimeData({
       ...stock,
-      price: stock.price * (1 + (Math.random() - 0.5) * 0.02),
-      change: stock.price * (Math.random() - 0.5) * 0.02,
-      changePercent: (Math.random() - 0.5) * 4
+      price: stock.price * (1 + (Math.random() - 0.5) * 0.02)
     })))
+    // 同时刷新当前选中股票
+    if (selectedStock) {
+      setSelectedStock(generateRealtimeData({
+        ...selectedStock,
+        price: selectedStock.price * (1 + (Math.random() - 0.5) * 0.02)
+      }))
+    }
   }
 
   const getMarketColor = (market: string) => {
@@ -496,7 +584,7 @@ export default function StockSearch() {
                 {searchResults.map((stock) => (
                   <div
                     key={`${stock.market}-${stock.symbol}`}
-                    onClick={() => setSelectedStock(stock)}
+                    onClick={() => handleSelectStock(stock)}
                     className={`bg-white rounded-xl p-4 border cursor-pointer transition-all ${
                       selectedStock?.symbol === stock.symbol && selectedStock?.market === stock.market
                         ? 'border-blue-500 shadow-md'
@@ -562,7 +650,7 @@ export default function StockSearch() {
                     {stockDatabase.slice(0, 8).map((stock) => (
                       <div
                         key={`${stock.market}-${stock.symbol}`}
-                        onClick={() => { setSelectedStock(stock); setSearchResults([stock]) }}
+                        onClick={() => { handleSelectStock(stock); setSearchResults([generateRealtimeData(stock)]) }}
                         className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
                       >
                         <div>
@@ -594,7 +682,7 @@ export default function StockSearch() {
                 watchlist.map((stock) => (
                   <div
                     key={`${stock.market}-${stock.symbol}`}
-                    onClick={() => setSelectedStock(stock)}
+                    onClick={() => handleSelectStock(stock)}
                     className={`bg-white rounded-xl p-4 border cursor-pointer transition-all ${
                       selectedStock?.symbol === stock.symbol && selectedStock?.market === stock.market
                         ? 'border-blue-500 shadow-md'
@@ -648,17 +736,33 @@ export default function StockSearch() {
         <div className="space-y-4">
           {selectedStock ? (
             <>
-              {/* Stock Info Card */}
+              {/* Stock Info Card - 实时行情报价 */}
               <div className="bg-white rounded-xl p-6 border border-gray-100">
+                {/* 标题行：名称 + 代码 + 时间戳 */}
                 <div className="flex items-center justify-between mb-4">
-                  <div>
+                  <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-gray-800">{selectedStock.name}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-gray-500">{selectedStock.symbol}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs ${getMarketColor(selectedStock.market)}`}>
-                        {selectedStock.market}
-                      </span>
-                    </div>
+                    <span className="text-gray-500 font-medium">{selectedStock.symbol}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs ${getMarketColor(selectedStock.market)}`}>
+                      {selectedStock.market}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    ({selectedStock.updateTime || `2026-02-21 ${new Date().toLocaleTimeString('zh-CN')}`})
+                  </div>
+                </div>
+
+                {/* 当前价格 - 大字显示 */}
+                <div className="flex items-baseline gap-4 mb-4">
+                  <div className={`text-4xl font-bold ${selectedStock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {selectedStock.price.toFixed(3)}
+                    <span className="text-2xl ml-1">{selectedStock.changePercent >= 0 ? '↑' : '↓'}</span>
+                  </div>
+                  <div className={`text-lg ${selectedStock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.change.toFixed(3)}
+                    <span className="ml-2">
+                      {selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.changePercent.toFixed(2)}%
+                    </span>
                   </div>
                   <button
                     onClick={() => {
@@ -668,7 +772,7 @@ export default function StockSearch() {
                         addToWatchlist(selectedStock)
                       }
                     }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    className={`ml-auto flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                       isInWatchlist(selectedStock.symbol, selectedStock.market)
                         ? 'bg-yellow-50 text-yellow-600'
                         : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
@@ -682,38 +786,104 @@ export default function StockSearch() {
                   </button>
                 </div>
 
-                <div className="mb-4">
-                  <div className="text-3xl font-bold text-gray-800">{selectedStock.price.toFixed(2)}</div>
-                  <div className={`flex items-center gap-2 mt-1 ${
-                    selectedStock.changePercent >= 0 ? 'text-red-500' : 'text-green-500'
-                  }`}>
-                    <span className="inline-flex">
-                      {selectedStock.changePercent >= 0 && <TrendingUp className="w-5 h-5" />}
-                      {selectedStock.changePercent < 0 && <TrendingDown className="w-5 h-5" />}
-                    </span>
-                    <span className="text-lg font-medium">
-                      {selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.change.toFixed(2)}
-                      ({selectedStock.changePercent >= 0 ? '+' : ''}{selectedStock.changePercent.toFixed(2)}%)
-                    </span>
+                {/* 详细行情数据网格 - 仿东方财富样式 */}
+                <div className="grid grid-cols-4 gap-2 text-sm border-t border-gray-100 pt-4">
+                  {/* 第一行 */}
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">今开</span>
+                    <span className="font-medium">{selectedStock.open?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">最高</span>
+                    <span className="font-medium text-red-500">{selectedStock.high?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">涨停</span>
+                    <span className="font-medium text-red-500">{selectedStock.limitUp?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">换手</span>
+                    <span className="font-medium">{selectedStock.turnoverRate?.toFixed(2) || '-'}%</span>
+                  </div>
+
+                  {/* 第二行 */}
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">昨收</span>
+                    <span className="font-medium">{selectedStock.prevClose?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">最低</span>
+                    <span className="font-medium text-green-500">{selectedStock.low?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">跌停</span>
+                    <span className="font-medium text-green-500">{selectedStock.limitDown?.toFixed(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">量比</span>
+                    <span className="font-medium">{selectedStock.volumeRatio?.toFixed(2) || '-'}</span>
+                  </div>
+
+                  {/* 第三行 */}
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">成交量</span>
+                    <span className="font-medium">{selectedStock.volume}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">成交额</span>
+                    <span className="font-medium">{selectedStock.turnover || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">振幅</span>
+                    <span className="font-medium">{selectedStock.amplitude?.toFixed(2) || '-'}%</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">均价</span>
+                    <span className="font-medium">{selectedStock.avgPrice?.toFixed(3) || '-'}</span>
+                  </div>
+
+                  {/* 第四行 */}
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">外盘</span>
+                    <span className="font-medium text-red-500">{selectedStock.outerVol || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">内盘</span>
+                    <span className="font-medium text-green-500">{selectedStock.innerVol || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">市盈率</span>
+                    <span className="font-medium">{selectedStock.pe}x</span>
+                  </div>
+                  <div className="flex justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-gray-500">市值</span>
+                    <span className="font-medium">{selectedStock.marketCap}</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-gray-500">成交量</div>
-                    <div className="font-medium text-gray-800">{selectedStock.volume}</div>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-gray-500">市值</div>
-                    <div className="font-medium text-gray-800">{selectedStock.marketCap}</div>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-gray-500">市盈率</div>
-                    <div className="font-medium text-gray-800">{selectedStock.pe}x</div>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-gray-500">52周区间</div>
-                    <div className="font-medium text-gray-800">{selectedStock.low52w}-{selectedStock.high52w}</div>
+                {/* 52周区间 */}
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">52周区间</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">{selectedStock.low52w}</span>
+                      <div className="w-32 h-2 bg-gray-200 rounded-full relative">
+                        <div
+                          className="absolute h-2 bg-gradient-to-r from-green-400 to-red-400 rounded-full"
+                          style={{
+                            width: '100%',
+                          }}
+                        />
+                        <div
+                          className="absolute w-2 h-2 bg-blue-600 rounded-full top-0"
+                          style={{
+                            left: `${Math.min(100, Math.max(0, ((selectedStock.price - selectedStock.low52w) / (selectedStock.high52w - selectedStock.low52w)) * 100))}%`,
+                            transform: 'translateX(-50%)'
+                          }}
+                        />
+                      </div>
+                      <span className="text-red-500">{selectedStock.high52w}</span>
+                    </div>
                   </div>
                 </div>
               </div>
